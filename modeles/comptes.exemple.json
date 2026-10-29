@@ -1,0 +1,4 @@
+{"instagram_moncompte": {"reseau": "Instagram", "handle": "@moncompte", "url": "https://www.instagram.com/moncompte/",
+  "proprietaire": true, "public": "décrire le public visé", "fuseaux_public": ["Europe/Paris"],
+  "fuseau_utilisateur": "Europe/Paris", "langue": "fr", "objectif": "ce que le compte doit apporter",
+  "acces": {"metricool": null, "public": "navigateur", "interne": "connexion manuelle (option)"}}}
