@@ -1,5 +1,5 @@
 #!/bin/bash
-# v3.0 — installe/vérifie les dépendances dans le dossier de travail ($ANALYSES_DIR ou ~/Analyses).
+# v4.0 — installe/vérifie les dépendances dans le dossier de travail ($ANALYSES_DIR ou ~/Analyses).
 # Usage : bash install.sh          (ordinateur Mac ou Linux : tout, y compris Whisper)
 #         bash install.sh --leger  (espace cloud : seulement ce qu'il faut pour timing/report/calendrier/coherence)
 set -e

@@ -1,8 +1,10 @@
-{"version": "3.0",
+{"version": "4.0",
  "utilisateur": {"nom": "Prénom Nom", "appel": "Prénom", "tutoiement": false, "langue": "fr", "fuseau": "Europe/Paris"},
  "rapport": {"marque_client": "Audit réseaux sociaux", "marque_perso": "Analyse réseaux sociaux"},
  "memoire": {"type": "github", "depot": "pseudo-github/mes-analyses", "dossier": "donnees"},
  "connecteurs": {},
  "regles": [],
  "reseaux": {},
- "contenus": {"skills": []}}
+ "contenus": {"skills": []},
+ "publicite": {"plafond_jour": 0, "plafond_total": 0, "devise": "EUR"},
+ "usage": {"rapport_anonyme": "demander"}}

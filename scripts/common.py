@@ -1,17 +1,59 @@
-"""Outils communs v3.0 — boîte à outils générique, pour n'importe quel utilisateur et n'importe quel réseau.
+"""Outils communs v4.0 — boîte à outils générique, pour n'importe quel utilisateur et n'importe quel réseau.
 
 BASE    = dossier de travail (cache, rapports, .venv) : $ANALYSES_DIR ou ~/Analyses.
-DONNEES = espace de données de l'utilisateur (profil.json, comptes.json, historique/, coherence/) :
+DONNEES = espace de données de l'utilisateur (profil.json, comptes.json, historique/, coherence/,
+          actions/, journal.jsonl) :
           $ANALYSES_DONNEES ou ~/Analyses/donnees. Jamais dans la boîte à outils.
 """
 import datetime as dt, glob, json, os, shutil
 
-VERSION = "3.0"
+VERSION = "4.0"
 BASE = os.environ.get("ANALYSES_DIR", os.path.expanduser("~/Analyses"))
 DONNEES = os.environ.get("ANALYSES_DONNEES", os.path.join(BASE, "donnees"))
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HISTO = os.path.join(DONNEES, "historique")
+JOURNAL = os.path.join(DONNEES, "journal.jsonl")
 JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+
+
+def projet():
+    """reference/projet.json : dépôt public de la boîte à outils (rapports d'usage anonymes), version."""
+    return load(os.path.join(RACINE, "reference", "projet.json"), {}) or {}
+
+
+def slug(x):
+    """Texte -> identifiant de dossier (minuscules, chiffres, tirets)."""
+    import unicodedata
+    t = unicodedata.normalize("NFKD", str(x or "")).encode("ascii", "ignore").decode().lower()
+    return "-".join("".join(c if c.isalnum() else " " for c in t).split()) or "sans-nom"
+
+
+def lire_jsonl(path):
+    out = []
+    try:
+        with open(path, encoding="utf-8") as f:
+            for l in f:
+                l = l.strip()
+                if l:
+                    try:
+                        out.append(json.loads(l))
+                    except Exception:
+                        pass
+    except FileNotFoundError:
+        pass
+    return out
+
+
+def ecrire_jsonl(path, lignes):
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        for l in lignes:
+            f.write(json.dumps(l, ensure_ascii=False) + "\n")
+
+
+def maintenant():
+    """Horodatage ISO local avec fuseau (ANALYSES_MAINTENANT pour les tests)."""
+    return os.environ.get("ANALYSES_MAINTENANT") or dt.datetime.now().astimezone().isoformat(timespec="seconds")
 
 
 def ffmpeg():

@@ -3,7 +3,9 @@
 python3 tests/selftest.py            (depuis la racine de la boîte à outils)
 
 Vérifie : espace de données (init, comptes, contrôle des secrets), réseaux connus/alias/inconnus, compilation de tous les scripts, timing, report (avec section Suivi), archivage,
-calendrier + .ics, cohérence, transcription depuis sous-titres, mesures vidéo (si ffmpeg), PDF sans page vide.
+calendrier + .ics, cohérence, transcription depuis sous-titres, mesures vidéo (si ffmpeg), PDF sans page vide,
+historique (index, évolution, recherche), journal des sessions, rapport d'usage anonyme (aucune fuite), tableau de bord,
+actions (validation, empreinte, plafonds publicitaires, clients sans consentement), section Publicités.
 Ne touche jamais à un vrai espace de données : tout se passe dans un dossier temporaire.
 """
 import json, os, py_compile, shutil, subprocess, sys, tempfile, time
@@ -198,10 +200,94 @@ try:
 except Exception as e:
     print("measure ignoré (ffmpeg indisponible) :", e)
 
+# 9b. Historique
+r = run("historique index", ["historique.py", "index"])
+idx = json.load(open(os.path.join(DON, "historique", "index.json"))) if os.path.exists(os.path.join(DON, "historique", "index.json")) else {}
+check("index : 3 analyses archivées", idx.get("nb") == 3, str(idx.get("nb")))
+r = run("historique evolution", ["historique.py", "evolution", "--compte", "tiktok_test", "--png", os.path.join(BASE, "evo.png")])
+check("évolution abonnés 800 -> 950", "800 → 950" in r.stdout, r.stdout[-300:])
+check("courbes d'évolution", os.path.exists(os.path.join(BASE, "evo.png")))
+r = run("historique chercher", ["historique.py", "chercher", "Faire A"])
+check("recherche dans l'historique", "3 résultat(s)" in r.stdout, r.stdout[-200:])
+run("historique recos", ["historique.py", "recos", "--compte", "tiktok_test"])
+run("historique liste filtrée", ["historique.py", "liste", "--reseau", "tik tok"])
+os.remove(os.path.join(DON, "historique", "index.json"))
+r = run("historique bilan (index reconstruit)", ["historique.py", "bilan"])
+check("index reconstruit seul", os.path.exists(os.path.join(DON, "historique", "index.json")))
+
+# 9c. Journal des sessions + rapport d'usage anonyme + tableau de bord
+env_t = {"ANALYSES_MAINTENANT": "2026-10-01T10:00:00+02:00"}
+def run_env(nom, args, extra, attendu=0):
+    r = subprocess.run([sys.executable] + args, cwd=SCRIPTS, env={**ENV, **extra}, capture_output=True, text=True)
+    (ok if r.returncode == attendu else ko).append(nom)
+    if r.returncode != attendu:
+        print(f"\n--- ÉCHEC {nom} (code {r.returncode}) ---\n{r.stdout[-800:]}\n{r.stderr[-1500:]}")
+    return r
+run_env("usage debut", ["usage.py", "debut", "--mode", "D", "--reseau", "tik tok", "--compte", "tiktok_test", "--client", "Client Secret SARL"], env_t)
+run_env("usage etape", ["usage.py", "etape", "connecteur Metricool vide pour @test_tk"], env_t)
+run_env("usage fin", ["usage.py", "fin", "--statut", "partiel", "--note", "abonnés 950 chez @test_tk"], {"ANALYSES_MAINTENANT": "2026-10-01T10:42:00+02:00"})
+jr = [json.loads(l) for l in open(os.path.join(DON, "journal.jsonl"))]
+check("journal : durée 42 min", jr and jr[-1].get("duree_min") == 42.0, str(jr[-1:]))
+r = run("usage journal", ["usage.py", "journal"])
+r = run("usage rapport anonyme", ["usage.py", "rapport"])
+fuite = [x for x in ["test_tk", "tiktok_test", "Client Secret", "950", "Metricool", "@"] if x in r.stdout.split("Lien pour")[0]]
+check("rapport anonyme sans fuite", not fuite, str(fuite))
+check("rapport : catégorie connecteur", '"connecteur"' in r.stdout)
+check("rapport : lien de ticket prérempli", "issues/new?" in r.stdout and "labels=usage" in r.stdout)
+corps = r.stdout.split("Fichier :")[0]
+tickets = [{"body": corps, "createdAt": "2026-10-01"}, {"body": corps.replace('"partiel"', '"ok"'), "createdAt": "2026-10-02"},
+           {"body": "ticket sans rapport", "createdAt": "2026-10-03"}]
+w(os.path.join(BASE, "tickets.json"), tickets)
+r = run("usage tableau", ["usage.py", "tableau", os.path.join(BASE, "tickets.json"), "--out", os.path.join(BASE, "tableau.md")])
+check("tableau : 2 rapports valides", "2 rapports" in r.stdout, r.stdout[:200])
+
+# 9d. Actions : validation, empreinte, plafonds, clients
+r = run("action publication preparer", ["actions.py", "preparer", "--type", "publication", "--compte", "tiktok_test", "--texte", "Nouvelle vidéo ce soir"])
+aid = r.stdout.strip().splitlines()[-1] if r.stdout.strip() else ""
+run("action fait sans validation refusé", ["actions.py", "fait", aid], attendu=1)
+r = run("action montrer", ["actions.py", "montrer", aid])
+check("texte exact montré", "Nouvelle vidéo ce soir" in r.stdout)
+run("action valider", ["actions.py", "valider", aid, "--accord", "oui, publie-la"])
+fa = json.load(open(os.path.join(DON, "actions", aid + ".json"))) if aid else {}
+fa["texte"] = "Texte modifié en douce"; w(os.path.join(DON, "actions", aid + ".json"), fa)
+run("action texte changé après accord refusé", ["actions.py", "fait", aid], attendu=1)
+fa["texte"] = "Nouvelle vidéo ce soir"; w(os.path.join(DON, "actions", aid + ".json"), fa)
+run("action faite", ["actions.py", "fait", aid, "--lien", "https://exemple.test/v"])
+run("boost refusé (plafond 0 par défaut)", ["actions.py", "preparer", "--type", "boost", "--compte", "tiktok_test", "--budget", "20", "--duree-jours", "5"], attendu=1)
+run("donnees plafond pub", ["donnees.py", "init", "--plafond-pub-jour", "5", "--plafond-pub-total", "30"])
+r = run("boost dans le plafond", ["actions.py", "preparer", "--type", "boost", "--compte", "tiktok_test", "--budget", "20", "--duree-jours", "5", "--cible", "CI 18-34"])
+run("boost au-dessus du plafond refusé", ["actions.py", "preparer", "--type", "campagne", "--compte", "tiktok_test", "--budget", "100", "--duree-jours", "2"], attendu=1)
+r = run("hors plafond préparé", ["actions.py", "preparer", "--type", "campagne", "--compte", "tiktok_test", "--budget", "100", "--duree-jours", "2", "--hors-plafond"])
+hid = r.stdout.strip().splitlines()[-1] if r.stdout.strip() else ""
+run("hors plafond sans montant dans l'accord refusé", ["actions.py", "valider", hid, "--accord", "oui vas-y"], attendu=1)
+run("hors plafond avec montant accepté", ["actions.py", "valider", hid, "--accord", "oui, 100 euros c'est bon"])
+run("donnees compte client sans consentement", ["donnees.py", "compte", "--reseau", "Instagram", "--handle", "cafe", "--client", "Café Test"])
+run("verifier signale client sans consentement", ["donnees.py", "verifier"], attendu=1)
+run("action client sans consentement refusée", ["actions.py", "preparer", "--type", "publication", "--compte", "instagram_cafe", "--texte", "x"], attendu=1)
+run("donnees consentement client", ["donnees.py", "compte", "--reseau", "Instagram", "--handle", "cafe", "--client", "Café Test", "--consentement", "2026-10-30 par e-mail"])
+run("action client consentant", ["actions.py", "preparer", "--type", "publication", "--compte", "instagram_cafe", "--texte", "Offre du jour"])
+run("compte d'un tiers : action refusée", ["donnees.py", "compte", "--reseau", "X", "--handle", "autre", "--pas-a-moi"])
+run("action sur compte tiers refusée", ["actions.py", "preparer", "--type", "commentaire", "--compte", "x_autre", "--texte", "x"], attendu=1)
+r = run("actions liste", ["actions.py", "liste"])
+check("dépense faite = 0 (rien lancé)", "Dépense" not in r.stdout)
+check("LISEZMOI de l'espace de données", os.path.exists(os.path.join(DON, "LISEZMOI.md")))
+
+# 9e. Section Publicités
+dos6 = os.path.join(BASE, "rapports", "2026-10-01_pubs_test")
+an6 = analyse("Instagram", "instagram_test", 180, 4, 0, "Mr", "@test_ig", "bio", "fr")
+an6["publicites"] = {"analyse": "Les concurrents misent sur la vidéo.", "annonces": [{"annonceur": "Concurrent A", "depuis": "2026-09-01",
+                     "format": "vidéo", "accroche": "Ta peau en 7 jours", "cta": "Acheter", "plateformes": "Instagram"}],
+                     "campagne_proposee": {"objectif": "messages", "budget": "30 €", "arret": "pas de message après 10 €"}}
+w(os.path.join(dos6, "analysis.json"), an6)
+run("report publicités", ["report.py", dos6], date="2026-10-01")
+h6 = open(os.path.join(dos6, "rapport.html"), encoding="utf-8").read() if os.path.exists(os.path.join(dos6, "rapport.html")) else ""
+check("section Publicités", "Publicités" in h6 and "Concurrent A" in h6 and "Arrêter si" in h6)
+
 # 10. PDF sans page vide
 for nom, pdf in [("pdf rapport 2", os.path.join(dos2, "rapport.pdf")), ("pdf instagram", os.path.join(dos3, "rapport.pdf")),
                  ("pdf calendrier", os.path.join(cal, "calendrier.pdf")),
-                 ("pdf cohérence", os.path.join(BASE, "rapports", "coh", "coherence.pdf"))]:
+                 ("pdf cohérence", os.path.join(BASE, "rapports", "coh", "coherence.pdf")),
+                 ("pdf publicités", os.path.join(dos6, "rapport.pdf"))]:
     if os.path.exists(pdf):
         run(nom + " sans page vide", ["verifier_pdf.py", pdf])
     else:

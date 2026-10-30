@@ -2,22 +2,28 @@
 
 Dossier d'une analyse : `rapports/AAAA-MM-JJ_<reseau>_<sujet>/` dans le dossier de travail.
 Espace de données de l'utilisateur (`$ANALYSES_DONNEES`, voir README) : `profil.json`, `comptes.json`,
-`historique/<compte_cle>/<date>/`, `coherence/<date>/`. Créer et contrôler avec `scripts/donnees.py`.
+`historique/<compte_cle>/<date>/` (+ `historique/index.json`), `coherence/<date>/`, `actions/<id>.json`, `journal.jsonl`,
+`LISEZMOI.md`. Créer et contrôler avec `scripts/donnees.py`.
 
 ## profil.json (réglages de l'utilisateur)
 ```json
-{"version": "3.0",
+{"version": "4.0",
  "utilisateur": {"nom": "Awa Koné", "appel": "Awa", "tutoiement": false, "langue": "fr", "fuseau": "Europe/Paris"},
  "rapport": {"marque_client": "Mon agence · Audit réseaux sociaux", "marque_perso": "Analyse réseaux sociaux"},
  "memoire": {"type": "github", "depot": "awa/mes-analyses", "dossier": "donnees"},
  "connecteurs": {"metricool": {"brandId": 123456, "fuseau": "Europe/Paris", "comptes": ["instagram_awa"]}},
  "regles": ["Compte Instagram personnel : ne rien y publier sans demande explicite"],
  "reseaux": {"lemon8": {"bio_max": 80}},
- "contenus": {"skills": ["nom-d-un-skill-de-script-ou-de-video"]}}
+ "contenus": {"skills": ["nom-d-un-skill-de-script-ou-de-video"]},
+ "publicite": {"plafond_jour": 10, "plafond_total": 100, "devise": "EUR"},
+ "usage": {"rapport_anonyme": "demander"}}
 ```
 - `appel` : comment s'adresser à la personne ; `tutoiement` : false = vouvoiement.
 - `memoire.type` : `github` (dépôt privé de l'utilisateur), `dossier` (dossier relié de son ordinateur) ou `aucune`.
 - `regles` : consignes propres à la personne, à respecter dans chaque analyse (lues au démarrage).
+- `publicite` : plafonds de dépense fixés par la personne ; 0 (défaut) = aucune dépense possible (`actions.py` refuse).
+- `usage.rapport_anonyme` : `demander` (défaut, proposer une fois en fin d'analyse), `jamais`, ou `toujours` (envoyer sans redemander,
+  seulement si la personne l'a dit).
 - `reseaux` : limites vérifiées à la main pour un réseau non répertorié ou une règle qui a changé.
 
 ## comptes.json (mémoire)
@@ -26,8 +32,11 @@ Espace de données de l'utilisateur (`$ANALYSES_DONNEES`, voir README) : `profil
   "proprietaire": true, "public": "francophone, 18-34 ans", "fuseaux_public": ["Africa/Abidjan", "Europe/Paris"],
   "fuseau_utilisateur": "Europe/Paris", "langue": "fr", "objectif": "...",
   "acces": {"metricool": null, "public": "navigateur", "interne": "TikTok Studio (connexion manuelle)"},
-  "derniere_analyse": "2026-10-25"}}
+  "derniere_analyse": "2026-10-25"},
+ "instagram_cafe-awa": {"reseau": "Instagram", "handle": "@cafe_awa", "proprietaire": false,
+  "client": "Café Awa", "consentement": "2026-10-30, par e-mail : audit + publications validées par le client"}}
 ```
+`client` + `consentement` : compte d'un client ; sans consentement noté, `donnees.py verifier` le signale et `actions.py` refuse toute action.
 Jamais de mot de passe, code, jeton ou cookie dans ce fichier ni ailleurs dans le dépôt.
 
 ## posts.json
@@ -76,3 +85,27 @@ Les KPI numériques entrent dans le suivi d'un rapport à l'autre : garder les *
 {"resume": "...", "identite": {"nom": "Awa", "pseudo_cible": "@awa (si libre)", "photo": "...", "promesse": "...", "langue": "fr"},
  "bios": {"TikTok": "...", "Instagram": "...", "Facebook": "..."}, "actions": ["..."]}
 ```
+
+## publicites (dans analysis.json, mode M)
+```json
+"publicites": {"analyse": "Ce que font les concurrents et ce qu'il faut en retenir",
+  "annonces": [{"annonceur": "...", "depuis": "2026-09-12", "format": "vidéo 9:16, 20 s", "accroche": "...", "offre": "-20 %",
+                "cta": "Envoyer un message", "plateformes": "Instagram, Facebook", "lien": "lien de la bibliothèque"}],
+  "campagne_proposee": {"objectif": "messages", "contenu": "vidéo du 12/10 (meilleure portée organique)", "cible": "Abidjan, 20-40 ans",
+                        "budget": "30 € sur 6 jours", "duree": "6 jours", "texte": "...", "cta": "...",
+                        "reussite": "coût par message < 0,50 €", "arret": "pas de message après 10 €"}}
+```
+Le rapport ajoute la section « Publicités ». Rien n'est lancé : le lancement passe par `actions.py` (type `boost` ou `campagne`).
+
+## actions/<id>.json (écrit par actions.py)
+`{"id", "type" (publication|commentaire|reponse|message|profil|programmation|boost|campagne), "compte", "reseau", "handle", "client",
+"texte", "media", "quand", "budget", "duree_jours", "budget_jour", "devise", "cible", "objectif", "statut" (en_attente|validee|faite|annulee),
+"cree", "accord" (phrase exacte de l'utilisateur), "valide", "empreinte", "empreinte_validee", "fait", "lien", "note"}`
+
+## journal.jsonl (écrit par usage.py, une ligne par session, privé)
+`{"id", "debut", "fin", "duree_min", "mode", "mode_nom", "reseau", "compte", "client", "version", "etapes": ["étape bloquée…"], "statut", "note"}`
+Le rapport d'usage anonyme n'en garde que : jour, durée arrondie, mode, réseau, version, statut, catégories de blocage, audit client oui/non.
+
+## historique/index.json (écrit par historique.py)
+`{"genere", "nb", "analyses": [{"compte", "date", "reseau", "titre", "abonnes", "vues_mediane", "eng_moy", "note_profil", "internes",
+"creneaux", "recommandations", "prochains_contenus", "resume_executif", "bio", "pdf", "dossier"}]}` — reconstruit seul s'il manque une analyse.

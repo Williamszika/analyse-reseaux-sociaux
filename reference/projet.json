@@ -1,0 +1,7 @@
+{
+ "_note": "Réglages publics du projet. Si vous publiez votre propre copie de la boîte à outils, changez depot_outils.",
+ "nom": "analyse-reseaux-sociaux",
+ "version": "4.0",
+ "depot_outils": "Williamszika/analyse-reseaux-sociaux",
+ "label_usage": "usage"
+}
