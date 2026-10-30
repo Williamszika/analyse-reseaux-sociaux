@@ -15,7 +15,7 @@ from common import DONNEES, HISTO, JOURNAL, comptes, isnum, lire_jsonl, load, ma
 
 P_INDEX = os.path.join(HISTO, "index.json")
 KPIS = [("abonnes", "Abonnés"), ("vues_mediane", "Vues médianes"), ("eng_moy", "Engagement moyen (%)"),
-        ("note_profil", "Note du profil /10")]
+        ("note_profil", "Note du profil /10"), ("moy_s", "Temps moyen regardé (s)"), ("complet_pct", "Visionnage complet (%)")]
 
 
 def construire():

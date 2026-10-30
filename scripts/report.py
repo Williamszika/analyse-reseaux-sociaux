@@ -182,6 +182,10 @@ img{max-width:100%;margin:4px 0}.item{page-break-before:always}ul,ol{margin:4px 
 {% if a.prochains_contenus %}<div class="item"><h2>Prochains contenus</h2><p style="font-size:8pt;color:#666">Sujets tirés de ce qui marche sur le compte et dans la niche, prêts à passer en script.</p>
 <table><tr><th>#</th><th style="width:30%">Sujet</th><th>Angle / accroche</th><th>Format</th><th>Pourquoi</th></tr>{% for p in a.prochains_contenus %}<tr><td>{{loop.index}}</td><td><b>{{p.titre}}</b></td><td>{{p.angle or ""}}</td><td>{{p.format or ""}}{% if p.duree %} · {{p.duree}}{% endif %}</td><td>{{p.pourquoi or ""}}</td></tr>{% endfor %}</table>
 {% if a.reprises %}<h3>À republier ailleurs</h3><ul>{% for r in a.reprises %}<li>{{r}}</li>{% endfor %}</ul>{% endif %}</div>{% endif %}
+{% if ret %}<h2>Rétention : combien de temps on regarde</h2><p>{{ret.constat}}</p>
+<table><tr><th>Temps moyen regardé</th><th>Part de la vidéo vue</th><th>Visionnage complet</th><th>Décrochage avant 3 s</th></tr>
+<tr><td>{{ret.moy_s_mediane}} s (médiane)</td><td>{{ret.ratio_mediane}} %</td><td>{{ret.complet_mediane}} %</td><td>{{ret.decrochage_avant_3s}} / {{ret.decrochage_mesure}} vidéos</td></tr></table>
+{% if ret.meilleures %}<h3>Les vidéos qui retiennent le mieux</h3><ul>{% for m in ret.meilleures %}<li>{{m.sujet or m.id}} : {{m.moy_s}} s en moyenne, {{m.complet_pct}} % jusqu'au bout</li>{% endfor %}</ul>{% endif %}{% endif %}
 {% if a.publicites %}{% set pb = a.publicites %}<h2>Publicités</h2>{% if pb.analyse %}<p>{{pb.analyse}}</p>{% endif %}
 {% if pb.annonces %}<table><tr><th>Annonceur</th><th>Depuis</th><th>Format</th><th>Accroche / offre</th><th>Appel à l'action</th><th>Plateformes</th></tr>{% for x in pb.annonces %}<tr><td>{{x.annonceur}}</td><td>{{x.depuis or "—"}}</td><td>{{x.format or "—"}}</td><td>{{x.accroche or ""}}{% if x.offre %}<br><i>{{x.offre}}</i>{% endif %}</td><td>{{x.cta or "—"}}</td><td>{{x.plateformes or "—"}}</td></tr>{% endfor %}</table>{% endif %}
 {% if pb.campagne_proposee %}{% set cp = pb.campagne_proposee %}<h3>Campagne proposée (rien n'est lancé sans votre accord)</h3><table>{% for k,lab in [("objectif","Objectif"),("contenu","Contenu"),("cible","Cible"),("budget","Budget"),("duree","Durée"),("texte","Texte"),("cta","Appel à l'action"),("reussite","Réussite si"),("arret","Arrêter si")] %}{% if cp.get(k) %}<tr><th style="width:22%">{{lab}}</th><td>{{cp.get(k)}}</td></tr>{% endif %}{% endfor %}</table>{% endif %}{% endif %}
@@ -257,6 +261,7 @@ hp = os.path.join(d, "horaires.png")
 heat = b64file(hp, "image/png") if os.path.exists(hp) else None
 horaires = a.get("horaires") or {}
 si = load(os.path.join(d, "stats_internes.json"))
+ret = load(os.path.join(d, "retention.json"))
 act_img = chart_activite(si) if si else None
 
 profil = a.get("profil") or {}
@@ -286,7 +291,8 @@ resume = {"compte": key, "date": jour, "reseau": a.get("reseau"),
                               for c in horaires.get("creneaux_recommandes", []) if c.get("jours") and c.get("heure")],
           "recommandations": (a.get("recommandations") or [])[:6],
           "profil_actuel": a.get("profil_actuel") or {},
-          "prochains_contenus": [p.get("titre") for p in (a.get("prochains_contenus") or [])]}
+          "prochains_contenus": [p.get("titre") for p in (a.get("prochains_contenus") or [])],
+          "moy_s": (ret or {}).get("moy_s_mediane"), "complet_pct": (ret or {}).get("complet_mediane")}
 prev, suivi = None, []
 if key:
     prev = dernier_resume(key, avant=jour)
@@ -300,7 +306,8 @@ def ligne(lab, x, y):
 
 if prev:
     for lab, k in [("Abonnés", "abonnes"), ("Vues médianes", "vues_mediane"),
-                   ("Engagement moyen (%)", "eng_moy"), ("Note du profil /10", "note_profil")]:
+                   ("Engagement moyen (%)", "eng_moy"), ("Note du profil /10", "note_profil"),
+                   ("Temps moyen regardé (s)", "moy_s"), ("Visionnage complet (%)", "complet_pct")]:
         suivi.append(ligne(lab, prev.get(k), resume.get(k)))
     for k, y in resume["internes"].items():
         x = (prev.get("internes") or {}).get(k)
@@ -315,7 +322,7 @@ env = Environment(autoescape=True)
 env.filters["num"] = num
 html = env.from_string(TPL).render(
     a=a, contenus=contenus, compte=compte, timing=timing, heat=heat, horaires=horaires, si=si, act_img=act_img,
-    profil=profil, bios=bios, limite=limite, profil_note=profil_note, prev=prev, suivi=suivi,
+    profil=profil, bios=bios, ret=ret, limite=limite, profil_note=profil_note, prev=prev, suivi=suivi,
     style=style, c=C, date=dt.date.fromisoformat(jour).strftime("%d/%m/%Y"),
     marque=marque(style))
 html_path = os.path.join(d, "rapport.html")

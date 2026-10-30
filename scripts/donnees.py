@@ -7,6 +7,7 @@ python scripts/donnees.py compte --reseau TikTok --handle @awa [--url ...] [--pu
                                  [--objectif "..."] [--metricool <brandId>] [--pas-a-moi]
                                  [--client "Nom du client" --consentement "2026-10-30, par e-mail : analyse + publications"]
 python scripts/donnees.py verifier
+python scripts/donnees.py trouver [--racine /home/claude] [--racine ~]   cherche un espace de données existant (profil.json)
 
 Défauts quand personne ne répond (premier usage, tâche programmée) : langue fr, vouvoiement, fuseau UTC, mémoire aucune,
 aucun plafond publicitaire = aucune dépense possible.
@@ -162,6 +163,28 @@ Aucun mot de passe, code, jeton ni cookie n'est jamais écrit ici (`donnees.py v
 Pour tout effacer : supprimez ce dossier. Pour arrêter le suivi d'un compte : retirez-le de `comptes.json`.
 """
 
+def cmd_trouver(a):
+    """Cherche les espaces de données déjà créés (dossiers contenant profil.json + comptes.json), du plus récent au plus ancien."""
+    import glob
+    vus = []
+    for racine in a.racine or ["/home/claude", os.path.expanduser("~")]:
+        racine = os.path.expanduser(racine)
+        for motif in ["*/analyse/donnees/profil.json", "*/donnees/profil.json", "*/*/analyse/donnees/profil.json",
+                      "*/*/donnees/profil.json", "analyse/donnees/profil.json", "donnees/profil.json"]:
+            for p in glob.glob(os.path.join(racine, motif)):
+                d = os.path.dirname(os.path.abspath(p))
+                if d not in [v[1] for v in vus] and os.path.exists(os.path.join(d, "comptes.json")):
+                    nb = len(glob.glob(os.path.join(d, "historique", "*", "*")))
+                    vus.append((os.path.getmtime(p), d, nb))
+    if not vus:
+        print("Aucun espace de données trouvé. Avant de conclure à un premier usage : vérifier la mémoire de Claude, "
+              "les instructions du dépôt (CLAUDE.md) et les dépôts de l'utilisateur (list_repos) qui contiennent analyse/donnees/.")
+        sys.exit(1)
+    for _, d, nb in sorted(vus, reverse=True):
+        print(f"{d}  ({nb} analyse(s) archivée(s))")
+    print("À utiliser : export ANALYSES_DONNEES=" + sorted(vus, reverse=True)[0][1])
+
+
 ap = argparse.ArgumentParser()
 sp = ap.add_subparsers(dest="cmd", required=True)
 i = sp.add_parser("init")
@@ -174,5 +197,6 @@ k.add_argument("--reseau", required=True); k.add_argument("--handle", required=T
 k.add_argument("--public"); k.add_argument("--fuseaux-public"); k.add_argument("--objectif"); k.add_argument("--metricool")
 k.add_argument("--pas-a-moi", action="store_true"); k.add_argument("--client"); k.add_argument("--consentement")
 sp.add_parser("verifier")
+t = sp.add_parser("trouver"); t.add_argument("--racine", action="append")
 a = ap.parse_args()
-{"init": cmd_init, "compte": cmd_compte, "verifier": cmd_verifier}[a.cmd](a)
+{"init": cmd_init, "compte": cmd_compte, "verifier": cmd_verifier, "trouver": cmd_trouver}[a.cmd](a)

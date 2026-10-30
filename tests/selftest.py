@@ -331,6 +331,41 @@ try:
 except Exception as e:
     print("controle_video ignoré (ffmpeg indisponible) :", e)
 
+# 9h. Performance : rétention, étiquettes, livrables, tests A/B, tableau (performance.py)
+dosp = os.path.join(BASE, "rapports", "perf")
+pp = [dict(p, moy_s=3 + (i % 7) * 1.5, complet_pct=round(0.5 + (i % 4) * 0.6, 1), decrochage_s=1 + i % 2) for i, p in enumerate(posts)]
+w(os.path.join(dosp, "posts.json"), pp)
+r = run("performance retention", ["performance.py", "retention", dosp])
+rj = json.load(open(os.path.join(dosp, "retention.json"))) if os.path.exists(os.path.join(dosp, "retention.json")) else {}
+check("rétention : décrochage avant 3 s compté", rj.get("decrochage_avant_3s") == 20, str(rj.get("decrochage_avant_3s")))
+check("rétention : constat sur l'ouverture", "ouverture" in rj.get("constat", ""))
+for i, th in [(1, "famille"), (2, "famille"), (4, "travail")]:
+    run(f"étiquette {i}", ["performance.py", "etiquettes", "poser", "--id", str(i), "--theme", th])
+r = run("étiquettes analyser", ["performance.py", "etiquettes", "analyser", dosp])
+check("étiquettes : groupe famille n=2", "famille" in r.stdout and "n=2" in r.stdout, r.stdout[:300])
+livd = os.path.join(BASE, "livrables")
+w(os.path.join(livd, "2026-09-10_sujet-4.json"), {"titre": "Sujet 4", "note_qualite": 9, "legende_tiktok": {"accroche": "Sujet 4"}})
+w(os.path.join(livd, "2026-09-11_pas-publiee.json"), {"titre": "Pas publiée", "note_qualite": 8, "legende_tiktok": {"accroche": "Rien à voir"}})
+r = run("livrables suivi", ["performance.py", "livrables", dosp, "--livrables", livd], date="2026-09-20")
+ls_ = json.load(open(os.path.join(DON, "livrables_suivi.json"))) if os.path.exists(os.path.join(DON, "livrables_suivi.json")) else {}
+check("livrables : vidéo reliée à sa publication", (ls_.get("2026-09-10_sujet-4") or {}).get("video_id") == "4", str(ls_)[:300])
+check("livrables : non publiée signalée", "pas encore" in (ls_.get("2026-09-11_pas-publiee") or {}).get("statut", ""))
+run("test creer", ["performance.py", "test", "creer", "--nom", "ouv", "--hypothese", "h", "--a", "titre", "--b", "phrase", "--min", "2"])
+for v, i in [("A", 1), ("A", 2), ("B", 5), ("B", 6)]:
+    run(f"test ajouter {v}{i}", ["performance.py", "test", "ajouter", "--nom", "ouv", "--variante", v, "--id", str(i)])
+r = run("test verdict", ["performance.py", "test", "verdict", dosp])
+check("test : verdict B gagne", "B gagne" in r.stdout, r.stdout[-300:])
+r = run("test verdict trop tôt", ["performance.py", "test", "creer", "--nom", "vide", "--hypothese", "h", "--a", "a", "--b", "b"])
+r = run("test liste", ["performance.py", "test", "liste"])
+check("test : pas assez de vidéos signalé", "vide [en cours]" in r.stdout)
+tbd = os.path.join(BASE, "tableau")
+run("tableau export", ["performance.py", "tableau", dosp, "--out", tbd, "--historique", "tiktok_test"])
+tv = json.load(open(os.path.join(tbd, "videos.json"))) if os.path.exists(os.path.join(tbd, "videos.json")) else []
+check("tableau : 20 vidéos avec thème", len(tv) == 20 and any(x["theme"] == "famille" for x in tv), str(len(tv)))
+check("tableau : historique du compte", len(json.load(open(os.path.join(tbd, "historique.json")))) >= 2)
+r = run("données trouver", ["donnees.py", "trouver", "--racine", TMP])
+check("données : espace existant retrouvé", DON in r.stdout, r.stdout[-300:])
+
 # 10. PDF sans page vide
 for nom, pdf in [("pdf rapport 2", os.path.join(dos2, "rapport.pdf")), ("pdf instagram", os.path.join(dos3, "rapport.pdf")),
                  ("pdf calendrier", os.path.join(cal, "calendrier.pdf")),

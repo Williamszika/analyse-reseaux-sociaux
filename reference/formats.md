@@ -133,3 +133,12 @@ Dans `analysis.json`, le bloc `equipe` (optionnel) : `a_garder`, `consignes_vide
 `controle_video.py <video> --srt <sous-titres> --out <dossier> --vers <clone>/analyse/controles/<date>_<titre> --regard <observations.txt>`
 écrit `controle.json`, `controle.md` (✅ respecté, ❌ non respecté, 👁 à regarder), `ouverture.png` (0 à 4 s), `planche.png` (12 images).
 Code de sortie 3 s'il reste un point non respecté.
+
+## Performance (performance.py)
+- `posts.json` : champs de rétention facultatifs par vidéo : `moy_s` (temps de visionnage moyen, s), `complet_pct` (% qui ont tout regardé), `decrochage_s` (seconde où la plupart arrêtent), `pour_toi_pct`, `abonnes_gagnes`.
+- `rapports/<dossier>/retention.json` : `n`, `moy_s_mediane`, `complet_mediane`, `ratio_mediane`, `duree_mediane`, `decrochage_avant_3s`, `decrochage_mesure`, `correlation_vues_moy_s`, `meilleures`, `constat`. `report.py` en fait la section « Rétention ».
+- `etiquettes.json` (espace de données) : `{ "<id vidéo>": {"theme": …, "accroche": …, "format": …, "serie": …, "<autre>": …} }`. `etiquettes analyser` écrit `etiquettes_analyse.json` dans le dossier du rapport.
+- `livrables_suivi.json` : `{ "<nom du livrable>": {titre, note_qualite, duree_s, video_id, publie_le, statut, lien, releves: {"J+1"|"J+7"|"J+30"|"dernier": {date, age_j, vues, eng, moy_s, complet_pct, commentaires, vs_mediane_compte}}} }`.
+- `tests.json` : `{ "<nom>": {hypothese, variantes: {A, B}, critere, min, videos: {A: [ids], B: [ids]}, cree, statut, dernier_verdict} }`.
+- `performance.py tableau` écrit `videos.json`, `historique.json`, `livrables.json`, `tests.json` (listes de lignes) pour un tableau de bord.
+- `profil.json > tableau_de_bord` : adresse de l'artefact ; `profil.json > releve_soir` : identifiant et heure de la tâche du soir.

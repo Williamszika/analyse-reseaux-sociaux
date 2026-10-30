@@ -9,6 +9,8 @@ Instagram, YouTube, Facebook, LinkedIn, X, Threads, Pinterest, Twitch, Reddit, T
 - analyser et préparer des **publicités** ;
 - **publier et commenter** avec votre accord ;
 - **garder l'historique** de chaque analyse et suivre votre évolution ;
+- mesurer la **rétention** de chaque vidéo, trouver par **étiquettes** ce qui fait monter les vues, mener des **tests A/B** et suivre les vidéos livrées à J+1 / J+7 ;
+- alimenter un **tableau de bord** ;
 - livrer un **PDF**.
 
 Ce dépôt est public et ne contient **que des outils** : aucun compte, aucune statistique, aucun rapport, aucun secret.
@@ -37,10 +39,10 @@ Le skill télécharge lui-même cette boîte à outils à chaque utilisation : v
 | Dossier | Contenu |
 |---|---|
 | `skill/SKILL.md` | Le skill à installer dans Claude |
-| `scripts/` | `donnees` (espace de données), `historique` (index, évolution, recherche), `usage` (journal privé, rapport anonyme, tableau de bord), `actions` (publications et publicités validées), `brief` (retour d'analyse pour les dépôts qui fabriquent les vidéos et les scripts), `controle_video` (contrôle d'une vidéo livrée contre le cahier des charges), `collect`, `fetch`, `transcribe`, `measure`, `timing`, `report`, `archiver`, `calendrier`, `coherence`, `verifier_pdf`, `yt_search`, `install.sh` |
+| `scripts/` | `donnees` (espace de données), `historique` (index, évolution, recherche), `usage` (journal privé, rapport anonyme, tableau de bord), `actions` (publications et publicités validées), `brief` (retour d'analyse pour les dépôts qui fabriquent les vidéos et les scripts), `controle_video` (contrôle d'une vidéo livrée contre le cahier des charges), `performance` (rétention, étiquettes, tests A/B, suivi des vidéos livrées, export pour tableau de bord), `collect`, `fetch`, `transcribe`, `measure`, `timing`, `report`, `archiver`, `calendrier`, `coherence`, `verifier_pdf`, `yt_search`, `install.sh` |
 | `reference/` | `reseaux.md` / `reseaux.json` (fiches et limites par réseau), `connecteurs.md` (Metricool, Supermetrics, vidIQ), `actions.md` (connexion, publication, publicités), `formats.md`, `projet.json` |
 | `modeles/` | `profil.exemple.json`, `comptes.exemple.json` |
-| `tests/selftest.py` | 122 vérifications sur un utilisateur fictif, sans Internet |
+| `tests/selftest.py` | 149 vérifications sur un utilisateur fictif, sans Internet |
 
 ## En ligne de commande
 ```bash
@@ -72,7 +74,7 @@ Un réseau manque ou une limite a changé : modifier `reference/reseaux.json` (e
 
 A Claude skill to analyse **your own** account, or any public account, on any social network. It covers content, internal
 stats, best posting times, profile, cross-network consistency, ads analysis and preparation, approved posting and commenting,
-analysis history with progress tracking, and a PDF report. This repo only contains tools; each person's data lives in their
+analysis history with progress tracking, per-video retention, tags, A/B tests, delivered-video follow-up, a dashboard export, and a PDF report. This repo only contains tools; each person's data lives in their
 own (ideally private) data space.
 
 **Install for anyone:** download this repo, zip the `skill/` folder, add it to Claude's skills, then type
@@ -85,4 +87,4 @@ own (ideally private) data space.
 - Usage reports to the author are anonymous, opt-in and shown before sending.
 - The skill does not search for private individuals.
 
-**Tests:** `python3 tests/selftest.py` (122 checks, offline). MIT licence.
+**Tests:** `python3 tests/selftest.py` (149 checks, offline). MIT licence.
