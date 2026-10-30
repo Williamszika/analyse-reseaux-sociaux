@@ -181,7 +181,7 @@ Sur demande, créer une tâche programmée (le 1er du mois, heure choisie avec l
 
 ## Relevé du soir (vidéos récentes)
 
-Sur demande, une tâche programmée locale (elle a besoin du navigateur connecté) relève chaque soir les vidéos des 7 derniers jours : vues, réactions et rétention dans les statistiques internes, en lecture seule ; met à jour `posts.json` du dernier dossier d'historique ; lance `performance.py livrables`, `test verdict`, `retention` et `tableau` ; écrit les résultats dans « Après publication » de la fiche de chaque vidéo livrée si `equipe.journal_video` existe ; rafraîchit le tableau de bord ; pousse. Elle ne publie, ne commente et ne dépense rien. La noter dans `profil.json > releve_soir`.
+Sur demande, une tâche programmée locale (elle a besoin du navigateur connecté) relève chaque soir les vidéos des 10 derniers jours : vues, réactions et rétention dans les statistiques internes, en lecture seule ; met à jour `posts.json` du dernier dossier d'historique ; lance `performance.py livrables`, `test verdict`, `retention` et `tableau` ; écrit les résultats dans « Après publication » de la fiche de chaque vidéo livrée si `equipe.journal_video` existe ; rafraîchit le tableau de bord ; pousse. Elle ne publie, ne commente et ne dépense rien. La noter dans `profil.json > releve_soir`.
 
 ## Pour l'auteur du skill (propriétaire du dépôt de la boîte à outils)
 
