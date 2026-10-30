@@ -48,7 +48,7 @@ N'importe quel réseau fonctionne : s'il n'est pas dans `reference/reseaux.md`, 
 2. un dépôt de la session qui contient `profil.json` (chercher `*/donnees/profil.json`) ;
 3. sinon c'est un **premier usage** : voir ci-dessous.
 
-Dépôt GitHub de l'utilisateur : `add_repo(owner, repo, access="push")`, cloner, puis `export ANALYSES_DONNEES=<clone>/<dossier>`. Dossier sur son ordinateur relié : y travailler par le pont de l'ordinateur ou en copier les fichiers. Ensuite : `python3 $R/scripts/donnees.py verifier`, lire `profil.json` (forme d'adresse, fuseau, **règles**, connecteurs, plafond publicitaire) et `comptes.json` (si le compte y est, reprendre ses réglages sans reposer de question ; sinon l'ajouter avec `donnees.py compte`).
+Dépôt GitHub de l'utilisateur : `add_repo(owner, repo, access="push")`, cloner, puis `export ANALYSES_DONNEES=<clone>/<dossier>`. Dossier sur son ordinateur relié : y travailler par le pont de l'ordinateur ou en copier les fichiers. Ensuite : `python3 $R/scripts/donnees.py verifier`, lire `profil.json` (forme d'adresse, fuseau, **règles**, connecteurs, plafond publicitaire, `equipe`) et `comptes.json` (si le compte y est, reprendre ses réglages sans reposer de question ; sinon l'ajouter avec `donnees.py compte`).
 
 **3. Lire** la fiche du réseau dans `$R/reference/reseaux.md`, `$R/reference/connecteurs.md`, et pour les modes M et N ou une connexion : `$R/reference/actions.md`.
 
@@ -114,7 +114,7 @@ Grille fixe 0–10 (vidéo), toujours ces 8 clés : `accroche` (9 = promesse + t
 2. Données par fiabilité : activité réelle de l'audience (connecteur, statistiques internes) > historique du compte (`timing.py posts.json --tz <fuseau public> --tz <fuseau de l'utilisateur> --out <dossier>` : indice de vues par créneau, fiabilité faible < 15 posts) > niche > repères généraux (présentés comme hypothèse).
 3. Conclure : 2–3 créneaux avec l'heure du public **et** celle de l'utilisateur, la raison, une fréquence réaliste, la règle de la première heure (répondre aux commentaires), un plan de test de 2 semaines. Dans `analysis.json` : `jours` (Lun…Dim) et `heure` (HH:MM, fuseau de l'utilisateur) pour le calendrier.
 
-**Profil** (modes D et G) : noter sur 10 photo, nom affiché, pseudo, bio, lien(s), contenus mis en avant, visuel d'ensemble, organisation (playlists, stories à la une, tableaux…), cohérence, type de compte. Livrer 2–3 noms affichés, **3 bios prêtes à copier** (claire, percutante, business) sous la limite du réseau (`reseaux.json`, ou vérifiée à la main) avec 5 caractères de marge, contenus à épingler/archiver, autres réglages. Changer de pseudo casse les liens : le déconseiller sauf vrai problème. Appliquer un changement de profil seulement sur demande, un champ à la fois, texte exact montré avant (`actions.py --type profil`) ; jamais de changement de pseudo, mot de passe, e-mail ou sécurité.
+**Profil** (modes D et G) : noter sur 10 photo, nom affiché, pseudo, bio, lien(s), contenus mis en avant, visuel d'ensemble, organisation (playlists, stories à la une, tableaux…), cohérence, type de compte. Si le profil n'a pas changé depuis la dernière analyse archivée, reprendre sa note globale (`profil.note`) pour que le suivi reste comparable. Livrer 2–3 noms affichés, **3 bios prêtes à copier** (claire, percutante, business) sous la limite du réseau (`reseaux.json`, ou vérifiée à la main) avec 5 caractères de marge, contenus à épingler/archiver, autres réglages. Changer de pseudo casse les liens : le déconseiller sauf vrai problème. Appliquer un changement de profil seulement sur demande, un champ à la fois, texte exact montré avant (`actions.py --type profil`) ; jamais de changement de pseudo, mot de passe, e-mail ou sécurité.
 
 **Publicités** (mode M) : pour chaque annonce, depuis quand elle tourne (longtemps = rentable), format, accroche des 3 premières secondes, offre, appel à l'action, plateformes ; ce qu'il faut copier et ce qu'il faut éviter. Proposer une campagne (`publicites.campagne_proposee`, ou `campagne.json` seule) : objectif, contenu (de préférence le meilleur post organique), cible, budget, durée, texte, appel à l'action, seuil de réussite et seuil d'arrêt.
 
@@ -130,6 +130,7 @@ Toute action passe par `python3 $R/scripts/actions.py` (détails dans `actions.m
 
 Règles :
 - Une action = un accord. Une liste numérotée validée explicitement (« publie les 3 ») = une fiche par élément.
+- Avant de publier une vidéo venue d'un autre dépôt (par exemple `livrables/`), vérifier qu'elle n'est pas déjà en ligne sur le compte (même légende ou même durée) : republier une vidéo identique réduit sa portée.
 - Dépenses : `actions.py` refuse au-delà du plafond de `profil.json > publicite` (0 par défaut). Pour dépasser, l'utilisateur relève son plafond ou donne un accord qui cite le montant (`--hors-plafond`). Seulement sur un compte publicitaire déjà configuré par lui ; jamais de saisie de paiement.
 - Jamais : commentaires, likes, abonnements ou messages en série ou en boucle (spam, blocage du compte), faux avis, publicité trompeuse ou discriminatoire, contournement d'un refus de la plateforme. Respecter `profil.json > regles`.
 - Client : seulement si `comptes.json` note son consentement (`donnees.py compte … --client "<nom>" --consentement "<date, moyen, périmètre>"`) ; `actions.py` refuse sinon.
@@ -165,7 +166,7 @@ Un compte de marque garde son identité propre : ne le comparer à un compte per
 
 ## Suivi mensuel automatique
 
-Sur demande, créer une tâche programmée (le 1er du mois, heure choisie avec l'utilisateur) qui relance le mode I pour ses comptes reliés à un connecteur. Sa consigne nomme : la boîte à outils, le dépôt et le dossier de ses données, les comptes, et rappelle : ne poser aucune question, ne pas ouvrir de page de connexion, ne rien publier ni dépenser, archiver, pousser, envoyer les PDF avec un résumé de 5 lignes par compte, ne pas envoyer de rapport d'usage sauf `rapport_anonyme: toujours`. Noter la tâche dans `profil.json > suivi_mensuel`.
+Sur demande, créer une tâche programmée (le 1er du mois, heure choisie avec l'utilisateur) qui relance le mode I pour ses comptes reliés à un connecteur. Sa consigne nomme : la boîte à outils, le dépôt et le dossier de ses données, les comptes, et rappelle : ne poser aucune question, ne pas ouvrir de page de connexion, ne rien publier ni dépenser, archiver, pousser, envoyer les PDF avec un résumé de 5 lignes par compte, pousser le retour d'équipe si `equipe` existe, ne pas envoyer de rapport d'usage sauf `rapport_anonyme: toujours`. Noter la tâche dans `profil.json > suivi_mensuel`.
 
 ## Pour l'auteur du skill (propriétaire du dépôt de la boîte à outils)
 
