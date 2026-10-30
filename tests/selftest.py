@@ -301,6 +301,36 @@ check("retour scripts : aucune statistique", not any(x in pub for x in ["9,2", "
 check("retour vidéo : chiffres et livrables", "306" in priv and "livrables/x.mp4" in priv and "moment fort" not in priv.split("## À transmettre")[0])
 check("retour json", os.path.exists(os.path.join(eqd, "2026-10-30_tiktok_test.json")))
 
+# 9g. Contrôle d'une vidéo livrée (controle_video.py) : vidéo synthétique, voix à 0,2 s, un « bruitage » fort
+try:
+    from common import ffmpeg as _ff
+    FF2 = _ff()
+    vid = os.path.join(BASE, "livrable_test.mp4")
+    subprocess.run([FF2, "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc=duration=12:size=1080x1920:rate=25",
+                    "-f", "lavfi", "-i", "sine=frequency=300:duration=12",
+                    "-f", "lavfi", "-i", "sine=frequency=900:duration=1",
+                    "-filter_complex", "[1]volume=0.2[a];[2]volume=1.0,adelay=6000|6000[b];[a][b]amix=inputs=2:normalize=0[o]",
+                    "-map", "0:v", "-map", "[o]", "-shortest", "-pix_fmt", "yuv420p", vid], check=True)
+    srt = os.path.join(BASE, "livrable_test.srt")
+    open(srt, "w", encoding="utf-8").write(
+        "1\n00:00:00,200 --> 00:00:03,000\nUne phrase rapide qui parle beaucoup trop vite ici.\n\n"
+        "2\n00:00:03,050 --> 00:00:06,000\nEncore une phrase sans aucun arrêt entre les deux.\n\n"
+        "3\n00:00:06,100 --> 00:00:09,000\nEt une troisième phrase collée aux autres phrases.\n")
+    w(os.path.join(BASE, "regard.txt"), "Titre trop petit\nSous-titres lisibles\n")
+    r = run("controle_video", ["controle_video.py", vid, "--srt", srt, "--out", os.path.join(BASE, "ctrl"),
+                               "--vers", os.path.join(BASE, "ctrl_copie"), "--regard", os.path.join(BASE, "regard.txt")], attendu=3)
+    cj = json.load(open(os.path.join(BASE, "ctrl", "controle.json"))) if os.path.exists(os.path.join(BASE, "ctrl", "controle.json")) else {}
+    ko_ = {p["cle"] for p in cj.get("points", []) if p["ok"] is False}
+    check("contrôle : titre avant la voix non respecté", "titre" in ko_, str(ko_))
+    check("contrôle : débit trop rapide détecté", "debit" in ko_, str(ko_))
+    check("contrôle : arrêts manquants détectés", "arrets" in ko_, str(ko_))
+    check("contrôle : format et durée respectés", not ({"format", "duree"} & ko_), str(ko_))
+    check("contrôle : planches créées", os.path.exists(os.path.join(BASE, "ctrl_copie", "planche.png"))
+          and os.path.exists(os.path.join(BASE, "ctrl", "ouverture.png")))
+    check("contrôle : regard ajouté", "Titre trop petit" in open(os.path.join(BASE, "ctrl", "controle.md"), encoding="utf-8").read())
+except Exception as e:
+    print("controle_video ignoré (ffmpeg indisponible) :", e)
+
 # 10. PDF sans page vide
 for nom, pdf in [("pdf rapport 2", os.path.join(dos2, "rapport.pdf")), ("pdf instagram", os.path.join(dos3, "rapport.pdf")),
                  ("pdf calendrier", os.path.join(cal, "calendrier.pdf")),

@@ -123,3 +123,13 @@ Dans `analysis.json`, le bloc `equipe` (optionnel) : `a_garder`, `consignes_vide
 `livrables` (`fichier`, `publie_le`, `lien`, `vues`, `eng`, `verdict`) pour relier chaque vidéo livrée à ses résultats.
 `brief.py rapports/<dossier> --vers <clone>/analyse/retours` écrit `AAAA-MM-JJ_<compte>.md` (complet, dépôt privé),
 `AAAA-MM-JJ_<compte>_scripts.md` (sans statistiques, transmissible à un dépôt public), `.json`, `dernier.md`, `dernier_scripts.md`.
+
+## Cahier des charges vidéo (profil.json > equipe > cahier_video, controle_video.py)
+```json
+"cahier_video": {"duree_max_s": 180, "format": "1080x1920", "lufs_cible": -14, "lufs_tolerance": 1.5,
+  "titre_avant_voix_s": 1.5, "debit_max_mots_s": 2.5, "pause_phrase_min_s": 0.5, "part_phrases_avec_pause": 0.7,
+  "pic_bruitage_max_db": 4.0, "bruit_dans_arrets_max_db": -6.0, "silence_seuil_db": -35}
+```
+`controle_video.py <video> --srt <sous-titres> --out <dossier> --vers <clone>/analyse/controles/<date>_<titre> --regard <observations.txt>`
+écrit `controle.json`, `controle.md` (✅ respecté, ❌ non respecté, 👁 à regarder), `ouverture.png` (0 à 4 s), `planche.png` (12 images).
+Code de sortie 3 s'il reste un point non respecté.
