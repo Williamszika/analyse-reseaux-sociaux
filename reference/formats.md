@@ -109,3 +109,17 @@ Le rapport d'usage anonyme n'en garde que : jour, durée arrondie, mode, réseau
 ## historique/index.json (écrit par historique.py)
 `{"genere", "nb", "analyses": [{"compte", "date", "reseau", "titre", "abonnes", "vues_mediane", "eng_moy", "note_profil", "internes",
 "creneaux", "recommandations", "prochains_contenus", "resume_executif", "bio", "pdf", "dossier"}]}` — reconstruit seul s'il manque une analyse.
+
+## Travail en équipe (profil.json > equipe, analysis.json > equipe, brief.py)
+Quand d'autres dépôts fabriquent les contenus, `profil.json` les nomme :
+```json
+"equipe": {"videos": {"depot": "moi/mes-videos", "branche": "main", "dossier": "analyse/retours",
+                      "role": "fabrique les vidéos ; lit analyse/retours/dernier.md avant chaque vidéo"},
+           "scripts": {"depot": "moi/mes-scripts", "public": true, "dossier": "retours-video", "transmis_par": "videos",
+                       "contenu": "seulement *_scripts.md"}}
+```
+Dans `analysis.json`, le bloc `equipe` (optionnel) : `a_garder`, `consignes_video` (chiffres permis), `consignes_script`
+(consignes d'écriture : durées et nombre de mots permis, **aucune statistique du compte ni donnée d'audience**),
+`livrables` (`fichier`, `publie_le`, `lien`, `vues`, `eng`, `verdict`) pour relier chaque vidéo livrée à ses résultats.
+`brief.py rapports/<dossier> --vers <clone>/analyse/retours` écrit `AAAA-MM-JJ_<compte>.md` (complet, dépôt privé),
+`AAAA-MM-JJ_<compte>_scripts.md` (sans statistiques, transmissible à un dépôt public), `.json`, `dernier.md`, `dernier_scripts.md`.

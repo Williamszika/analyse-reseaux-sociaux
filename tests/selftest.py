@@ -5,7 +5,7 @@ python3 tests/selftest.py            (depuis la racine de la boîte à outils)
 Vérifie : espace de données (init, comptes, contrôle des secrets), réseaux connus/alias/inconnus, compilation de tous les scripts, timing, report (avec section Suivi), archivage,
 calendrier + .ics, cohérence, transcription depuis sous-titres, mesures vidéo (si ffmpeg), PDF sans page vide,
 historique (index, évolution, recherche), journal des sessions, rapport d'usage anonyme (aucune fuite), tableau de bord,
-actions (validation, empreinte, plafonds publicitaires, clients sans consentement), section Publicités.
+actions (validation, empreinte, plafonds publicitaires, clients sans consentement), section Publicités,\nretour d'équipe (brief.py : aucune statistique dans le retour destiné aux scripts).
 Ne touche jamais à un vrai espace de données : tout se passe dans un dossier temporaire.
 """
 import json, os, py_compile, shutil, subprocess, sys, tempfile, time
@@ -282,6 +282,24 @@ w(os.path.join(dos6, "analysis.json"), an6)
 run("report publicités", ["report.py", dos6], date="2026-10-01")
 h6 = open(os.path.join(dos6, "rapport.html"), encoding="utf-8").read() if os.path.exists(os.path.join(dos6, "rapport.html")) else ""
 check("section Publicités", "Publicités" in h6 and "Concurrent A" in h6 and "Arrêter si" in h6)
+
+# 9f. Retour d'analyse pour l'équipe (brief.py)
+an7 = analyse("TikTok", "tiktok_test", 950, 6, 5, "Mr Test", "@test_tk", "bio tk", "fr")
+an7["resume_executif"] = "Vues médianes 306, engagement 6 %. Le compte plafonne."
+an7["equipe"] = {"consignes_video": ["Durée 45 à 60 s (médiane 139 s)"], "consignes_script": ["Première phrase = le moment fort"],
+                 "a_garder": ["Les histoires de famille", "Engagement de 9,2 % sur la vidéo du 6"],
+                 "livrables": [{"fichier": "livrables/x.mp4", "publie_le": "2026-10-29", "vues": 261, "eng": 4.98, "verdict": "moyen"}]}
+dos7 = os.path.join(BASE, "rapports", "2026-10-30_brief_test")
+w(os.path.join(dos7, "analysis.json"), an7)
+w(os.path.join(dos7, "stats_internes.json"), {"kpis": {"Revenus": 16.24}})
+eqd = os.path.join(BASE, "equipe_retours")
+run("brief", ["brief.py", dos7, "--vers", eqd, "--date", "2026-10-30"])
+pub = open(os.path.join(eqd, "dernier_scripts.md"), encoding="utf-8").read() if os.path.exists(os.path.join(eqd, "dernier_scripts.md")) else ""
+priv = open(os.path.join(eqd, "dernier.md"), encoding="utf-8").read() if os.path.exists(os.path.join(eqd, "dernier.md")) else ""
+check("retour scripts : consignes présentes", "moment fort" in pub and "histoires de famille" in pub)
+check("retour scripts : aucune statistique", not any(x in pub for x in ["9,2", "306", "261", "16.24", "Engagement de"]), pub[:300])
+check("retour vidéo : chiffres et livrables", "306" in priv and "livrables/x.mp4" in priv and "moment fort" not in priv.split("## À transmettre")[0])
+check("retour json", os.path.exists(os.path.join(eqd, "2026-10-30_tiktok_test.json")))
 
 # 10. PDF sans page vide
 for nom, pdf in [("pdf rapport 2", os.path.join(dos2, "rapport.pdf")), ("pdf instagram", os.path.join(dos3, "rapport.pdf")),
