@@ -1,9 +1,9 @@
 ---
 name: "analyse-reseaux-sociaux"
-description: "Analyse complète d'UN réseau social par demande, pour n'importe quelle personne et n'importe quel réseau (TikTok, Instagram, YouTube, Facebook, LinkedIn, X, Threads, Pinterest, Twitch, Reddit, RedNote…) : contenus, stats internes, horaires, profil, cohérence, publicités, publications validées, historique et suivi, PDF."
+description: "Analyse complète d'UN réseau social par demande, pour n'importe qui et n'importe quel réseau : contenus, stats, rétention, horaires, profil, publicités, tests A/B, messagerie (clients, commandes, rendez-vous, partenaires), chaîne vidéo, PDF."
 ---
 
-# Analyse réseaux sociaux — v4.0
+# Analyse réseaux sociaux — v4.2
 
 Analyse les comptes et contenus d'un réseau social, lit les statistiques internes des comptes de l'utilisateur, dit **quand publier**, **comment rendre le profil attractif**, vérifie la **cohérence entre ses réseaux**, analyse et prépare les **publicités**, **publie et commente** avec son accord, propose les **prochains contenus**, et livre un PDF. Chaque analyse est mémorisée dans l'espace de données de l'utilisateur et se compare aux précédentes.
 
@@ -151,7 +151,7 @@ Règles :
 ## Étape 5 : rapport, contrôle, mémoire, fin
 
 1. Écrire `analysis.json` dans le dossier du rapport (schéma : `formats.md` ; `compte_cle` = la clé de `comptes.json` ; `publicites` en mode M).
-2. `python $R/scripts/report.py rapports/<dossier> [--style client]` : intègre `stats_internes.json`, `timing.json` + `horaires.png`, Prochains contenus, Publicités, et la section **Suivi** (évolution depuis la dernière analyse archivée + recommandations d'alors à vérifier). En mode I, commenter ce suivi dans le résumé exécutif, avec `historique.py evolution --png` si utile.
+2. `python $R/scripts/report.py rapports/<dossier> [--style client]` : intègre `stats_internes.json`, `timing.json` + `horaires.png`, `retention.json`, Prochains contenus, Publicités, et la section **Suivi** (évolution depuis la dernière analyse archivée + recommandations d'alors à vérifier). En mode I, commenter ce suivi dans le résumé exécutif, avec `historique.py evolution --png` si utile.
 3. `python $R/scripts/verifier_pdf.py rapports/<dossier>/rapport.pdf --apercus` : code 2 = page presque vide → corriger (raccourcir, déplacer une section) et régénérer. Regarder 2–3 aperçus avec Read.
 4. Si une mémoire existe : `python $R/scripts/archiver.py rapports/<dossier> --pdf` (met aussi à jour `historique/index.json`) ; mettre à jour `comptes.json` si un réglage a changé.
 5. Mémoire dans un dépôt GitHub : `git pull --rebase`, `git add <dossier de données>`, commit « Analyse <réseau> <compte> du <date> » (avec les lignes d'attribution de la session), `git push`. En cas d'échec : le dire, le rapport reste livré.
