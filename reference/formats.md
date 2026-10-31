@@ -145,3 +145,7 @@ Code de sortie 3 s'il reste un point non respecté.
 
 ## Chaîne (chaine.py)
 `chaine/<id>.json` : `id`, `titre`, `script`, `plan`, `statut`, `historique` [{date, statut, note}], `accords` {video, publication : {date, texte mot pour mot}}, `revues` [{date, texte}], `controles` [{date, texte}], champs libres (`livrable`, `lien`, `demande_video`, `demande_publication`), `cree`, `maj`.
+
+## Messagerie (messagerie.py)
+`messagerie/<compte>/cadre.json` : nom_affiche, plateforme, type (entreprise|perso), langue, tutoiement, ton, presentation, signature, faq [{mots, reponse}], rdv {actif, objet, duree_min, jours, plages, delai_min_h, horizon_j, lieu, fuseau, auto_confirmer}, escalade, interdits, limites {auto_par_jour, auto_par_contact_par_jour, premiers_messages_par_jour}, relance {delai_j, max}, hors_cadre, validation {date, accord, empreinte}.
+`contacts.json` : {clé normalisée : {nom, canal, motif, source, consentement, note, relancer_le, relances, dernier_envoi, opposition, rdv}}. `journal.jsonl` : une ligne par message ou décision.

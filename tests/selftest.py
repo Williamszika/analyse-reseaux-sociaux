@@ -397,6 +397,47 @@ check("chaîne : 3e reprise -> bloquée", json.load(open(os.path.join(CH, "v2.js
 r = ch("chaîne liste", ["liste", "--a-traiter"])
 check("chaîne : liste à traiter", "v2" in r.stdout and "v1" not in r.stdout, r.stdout)
 
+# 9j. Messagerie (messagerie.py) : cadre validé, réponses automatiques bornées, STOP, rendez-vous, partenaires, rapport
+def ms(nom, args, attendu=0):
+    return run(nom, ["messagerie.py"] + args, attendu=attendu)
+ms("msg cadre init", ["cadre", "init", "--compte", "boutique_wa", "--plateforme", "whatsapp", "--nom", "Boutique Test"])
+ms("msg : validation refusée tant qu'il reste « à remplir »", ["cadre", "valider", "--compte", "boutique_wa", "--accord", "oui"], attendu=1)
+pc = os.path.join(DON, "messagerie", "boutique_wa", "cadre.json")
+cj = json.load(open(pc))
+cj["faq"] = [f for f in cj["faq"] if "à remplir" not in f["reponse"]] + [{"mots": ["prix", "tarif"], "reponse": "Le panier coûte 5 000 FCFA."}]
+w(pc, cj)
+r = ms("msg : décider avant validation", ["decider", "--compte", "boutique_wa", "--de", "Awa", "--message", "Quel est le prix ?"])
+check("msg : rien d'automatique sans cadre validé", '"decision": "proprietaire"' in r.stdout, r.stdout)
+ms("msg cadre valider", ["cadre", "valider", "--compte", "boutique_wa", "--accord", "oui c'est bon"])
+r = ms("msg décider prix", ["decider", "--compte", "boutique_wa", "--de", "Awa", "--message", "Bonjour, quel est le prix du panier ?"])
+check("msg : réponse du cadre", '"auto"' in r.stdout and "5 000 FCFA" in r.stdout, r.stdout)
+r = ms("msg décider escalade", ["decider", "--compte", "boutique_wa", "--de", "Awa", "--message", "Je veux être remboursée, c'est une arnaque"])
+check("msg : escalade au propriétaire", "proprietaire_attente" in r.stdout and "transmets" in r.stdout, r.stdout)
+r = ms("msg décider rdv", ["decider", "--compte", "boutique_wa", "--de", "Kofi", "--message", "On peut prendre rendez-vous demain ?"])
+check("msg : demande de rendez-vous", '"rdv"' in r.stdout, r.stdout)
+r = ms("msg décider inconnu", ["decider", "--compte", "boutique_wa", "--de", "Kofi", "--message", "Vous livrez à Bouaké ?"])
+check("msg : hors cadre -> propriétaire", "proprietaire_attente" in r.stdout, r.stdout)
+r = ms("msg décider stop", ["decider", "--compte", "boutique_wa", "--de", "Moussa", "--message", "STOP"])
+check("msg : STOP enregistré", '"stop"' in r.stdout and json.load(open(os.path.join(DON, "messagerie", "boutique_wa", "contacts.json")))["moussa"].get("opposition"))
+cj = json.load(open(pc)); cj["faq"][0]["reponse"] += " (modifié)"; w(pc, cj)
+r = ms("msg : cadre modifié après accord", ["decider", "--compte", "boutique_wa", "--de", "Awa", "--message", "prix ?"])
+check("msg : cadre modifié -> plus d'automatique", '"decision": "proprietaire"' in r.stdout, r.stdout)
+w(os.path.join(BASE, "occupe.json"), [])
+r = ms("msg créneaux", ["creneaux", "--compte", "boutique_wa", "--occupe", os.path.join(BASE, "occupe.json"), "--jours", "10"])
+check("msg : 3 créneaux proposés", r.stdout.count('"debut"') == 3, r.stdout[:300])
+ms("msg contact partenaire LinkedIn", ["contact", "--compte", "boutique_wa", "--nom", "Agence X", "--canal", "linkedin", "--motif", "partenaire", "--note", "collab"])
+ms("msg contact partenaire WhatsApp", ["contact", "--compte", "boutique_wa", "--nom", "Inconnu Y", "--canal", "whatsapp", "--motif", "partenaire"])
+ms("msg contact relance", ["contact", "--compte", "boutique_wa", "--nom", "Client Z", "--motif", "relance", "--relancer-dans-j", "0"])
+r = ms("msg à faire", ["a-faire", "--compte", "boutique_wa"])
+check("msg : partenaire LinkedIn proposé, WhatsApp sans consentement refusé", "Agence X" in r.stdout and "✗ Inconnu Y" in r.stdout and "Client Z" in r.stdout, r.stdout)
+ms("msg noter envoi", ["noter", "--compte", "boutique_wa", "--contact", "Awa", "--sens", "envoye", "--texte", "Le panier coûte 5 000 FCFA.", "--auto"])
+ms("msg rdv", ["rdv", "--compte", "boutique_wa", "--contact", "Kofi", "--texte", "mardi 10 h"])
+r = ms("msg rapport", ["rapport", "--compte", "boutique_wa"])
+check("msg : rapport complet", "Réponses automatiques (dans le cadre) : **1**" in r.stdout and "Rendez-vous pris : **1**" in r.stdout
+      and "À vous de répondre" in r.stdout, r.stdout)
+ms("msg : perso sans automatique", ["cadre", "init", "--compte", "perso_wa", "--plateforme", "whatsapp", "--type", "perso"])
+ms("msg : validation refusée sur un compte perso", ["cadre", "valider", "--compte", "perso_wa", "--accord", "oui"], attendu=1)
+
 # 10. PDF sans page vide
 for nom, pdf in [("pdf rapport 2", os.path.join(dos2, "rapport.pdf")), ("pdf instagram", os.path.join(dos3, "rapport.pdf")),
                  ("pdf calendrier", os.path.join(cal, "calendrier.pdf")),

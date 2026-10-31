@@ -8,6 +8,7 @@ Instagram, YouTube, Facebook, LinkedIn, X, Threads, Pinterest, Twitch, Reddit, T
 - dire **quand publier** et proposer les **prochains contenus** ;
 - analyser et préparer des **publicités** ;
 - **publier et commenter** avec votre accord ;
+- gérer vos **messageries** (WhatsApp, Telegram, Instagram, LinkedIn…) : répondre aux clients dans un cadre que vous validez, prendre des **rendez-vous**, chercher des **partenaires**, **relancer** vos contacts, et vous faire un **rapport** ;
 - **garder l'historique** de chaque analyse et suivre votre évolution ;
 - mesurer la **rétention** de chaque vidéo, trouver par **étiquettes** ce qui fait monter les vues, mener des **tests A/B** et suivre les vidéos livrées à J+1 / J+7 ;
 - alimenter un **tableau de bord** ;
@@ -39,10 +40,10 @@ Le skill télécharge lui-même cette boîte à outils à chaque utilisation : v
 | Dossier | Contenu |
 |---|---|
 | `skill/SKILL.md` | Le skill à installer dans Claude |
-| `scripts/` | `donnees` (espace de données), `historique` (index, évolution, recherche), `usage` (journal privé, rapport anonyme, tableau de bord), `actions` (publications et publicités validées), `brief` (retour d'analyse pour les dépôts qui fabriquent les vidéos et les scripts), `controle_video` (contrôle d'une vidéo livrée contre le cahier des charges), `performance` (rétention, étiquettes, tests A/B, suivi des vidéos livrées, export pour tableau de bord), `chaine` (fiches de suivi script → vidéo → publication, avec accords obligatoires), `collect`, `fetch`, `transcribe`, `measure`, `timing`, `report`, `archiver`, `calendrier`, `coherence`, `verifier_pdf`, `yt_search`, `install.sh` |
-| `reference/` | `reseaux.md` / `reseaux.json` (fiches et limites par réseau), `connecteurs.md` (Metricool, Supermetrics, vidIQ), `actions.md` (connexion, publication, publicités), `formats.md`, `projet.json` |
+| `scripts/` | `donnees` (espace de données), `historique` (index, évolution, recherche), `usage` (journal privé, rapport anonyme, tableau de bord), `actions` (publications et publicités validées), `brief` (retour d'analyse pour les dépôts qui fabriquent les vidéos et les scripts), `controle_video` (contrôle d'une vidéo livrée contre le cahier des charges), `performance` (rétention, étiquettes, tests A/B, suivi des vidéos livrées, export pour tableau de bord), `chaine` (fiches de suivi script → vidéo → publication, avec accords obligatoires), `messagerie` (cadre de réponses validé, rendez-vous, partenaires, relances, rapport), `collect`, `fetch`, `transcribe`, `measure`, `timing`, `report`, `archiver`, `calendrier`, `coherence`, `verifier_pdf`, `yt_search`, `install.sh` |
+| `reference/` | `reseaux.md` / `reseaux.json` (fiches et limites par réseau), `connecteurs.md` (Metricool, Supermetrics, vidIQ), `actions.md` (connexion, publication, publicités), `messagerie.md` (règles par plateforme, rendez-vous, partenaires), `formats.md`, `projet.json` |
 | `modeles/` | `profil.exemple.json`, `comptes.exemple.json` |
-| `tests/selftest.py` | 176 vérifications sur un utilisateur fictif, sans Internet |
+| `tests/selftest.py` | 207 vérifications sur un utilisateur fictif, sans Internet |
 
 ## En ligne de commande
 ```bash
@@ -73,7 +74,7 @@ Un réseau manque ou une limite a changé : modifier `reference/reseaux.json` (e
 # Social media analysis — Claude skill + toolkit (v4.0)
 
 A Claude skill to analyse **your own** account, or any public account, on any social network. It covers content, internal
-stats, best posting times, profile, cross-network consistency, ads analysis and preparation, approved posting and commenting,
+stats, best posting times, profile, cross-network consistency, ads analysis and preparation, approved posting and commenting, messaging (customer replies within an owner-approved frame, bookings, partner outreach, follow-ups, owner reports),
 analysis history with progress tracking, per-video retention, tags, A/B tests, delivered-video follow-up, a dashboard export, and a PDF report. This repo only contains tools; each person's data lives in their
 own (ideally private) data space.
 
@@ -87,4 +88,4 @@ own (ideally private) data space.
 - Usage reports to the author are anonymous, opt-in and shown before sending.
 - The skill does not search for private individuals.
 
-**Tests:** `python3 tests/selftest.py` (176 checks, offline). MIT licence.
+**Tests:** `python3 tests/selftest.py` (207 checks, offline). MIT licence.
