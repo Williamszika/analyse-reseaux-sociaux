@@ -405,6 +405,10 @@ ms("msg : validation refusée tant qu'il reste « à remplir »", ["cadre", "val
 pc = os.path.join(DON, "messagerie", "boutique_wa", "cadre.json")
 cj = json.load(open(pc))
 cj["faq"] = [f for f in cj["faq"] if "à remplir" not in f["reponse"]] + [{"mots": ["prix", "tarif"], "reponse": "Le panier coûte 5 000 FCFA."}]
+cj["commandes"].update(actif=True, catalogue=[{"nom": "Panier", "prix": 5000, "unite": "panier", "disponible": True, "mots": ["paniers"]},
+                                              {"nom": "Jus de bissap", "prix": 1000, "unite": "bouteille", "disponible": True, "mots": ["bissap"]},
+                                              {"nom": "Gâteau", "prix": 3000, "unite": "pièce", "disponible": False, "mots": []}],
+                       livraison="Abidjan, le lendemain, 1 000 FCFA", paiement="à la livraison, en espèces ou Mobile Money")
 w(pc, cj)
 r = ms("msg : décider avant validation", ["decider", "--compte", "boutique_wa", "--de", "Awa", "--message", "Quel est le prix ?"])
 check("msg : rien d'automatique sans cadre validé", '"decision": "proprietaire"' in r.stdout, r.stdout)
@@ -417,6 +421,15 @@ r = ms("msg décider rdv", ["decider", "--compte", "boutique_wa", "--de", "Kofi"
 check("msg : demande de rendez-vous", '"rdv"' in r.stdout, r.stdout)
 r = ms("msg décider inconnu", ["decider", "--compte", "boutique_wa", "--de", "Kofi", "--message", "Vous livrez à Bouaké ?"])
 check("msg : hors cadre -> propriétaire", "proprietaire_attente" in r.stdout, r.stdout)
+r = ms("msg décider commande", ["decider", "--compte", "boutique_wa", "--de", "Fatou", "--message", "Je voudrais commander 2 paniers et du bissap"])
+check("msg : commande reconnue", '"commande"' in r.stdout and "Panier" in r.stdout, r.stdout)
+r = ms("msg commande nouvelle", ["commande", "nouvelle", "--compte", "boutique_wa", "--client", "Fatou", "--articles", "Panier x2; 3 Jus de bissap", "--livraison", "Cocody, samedi"])
+check("msg : total calculé avec le catalogue", '"total": 13000' in r.stdout and "13 000 FCFA" in r.stdout, r.stdout)
+ms("msg : produit absent refusé", ["commande", "nouvelle", "--compte", "boutique_wa", "--client", "X", "--articles", "Pizza x1"], attendu=1)
+ms("msg : produit indisponible refusé", ["commande", "nouvelle", "--compte", "boutique_wa", "--client", "X", "--articles", "Gâteau x1"], attendu=1)
+ms("msg commande confirmée", ["commande", "statut", "--compte", "boutique_wa", "--n", "1", "confirmee"])
+r = ms("msg commandes ouvertes", ["commande", "liste", "--compte", "boutique_wa", "--ouvertes"])
+check("msg : commande listée", "Fatou" in r.stdout and "confirmee" in r.stdout, r.stdout)
 r = ms("msg décider stop", ["decider", "--compte", "boutique_wa", "--de", "Moussa", "--message", "STOP"])
 check("msg : STOP enregistré", '"stop"' in r.stdout and json.load(open(os.path.join(DON, "messagerie", "boutique_wa", "contacts.json")))["moussa"].get("opposition"))
 cj = json.load(open(pc)); cj["faq"][0]["reponse"] += " (modifié)"; w(pc, cj)
@@ -433,7 +446,7 @@ check("msg : partenaire LinkedIn proposé, WhatsApp sans consentement refusé", 
 ms("msg noter envoi", ["noter", "--compte", "boutique_wa", "--contact", "Awa", "--sens", "envoye", "--texte", "Le panier coûte 5 000 FCFA.", "--auto"])
 ms("msg rdv", ["rdv", "--compte", "boutique_wa", "--contact", "Kofi", "--texte", "mardi 10 h"])
 r = ms("msg rapport", ["rapport", "--compte", "boutique_wa"])
-check("msg : rapport complet", "Réponses automatiques (dans le cadre) : **1**" in r.stdout and "Rendez-vous pris : **1**" in r.stdout
+check("msg : rapport complet", "Commandes du jour : **1** (13 000 FCFA)" in r.stdout and "Réponses automatiques (dans le cadre) : **1**" in r.stdout and "Rendez-vous pris : **1**" in r.stdout
       and "À vous de répondre" in r.stdout, r.stdout)
 ms("msg : perso sans automatique", ["cadre", "init", "--compte", "perso_wa", "--plateforme", "whatsapp", "--type", "perso"])
 ms("msg : validation refusée sur un compte perso", ["cadre", "valider", "--compte", "perso_wa", "--accord", "oui"], attendu=1)

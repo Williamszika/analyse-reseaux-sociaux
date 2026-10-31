@@ -1,4 +1,4 @@
-# Messagerie (mode O) : clients, rendez-vous, partenaires, relances, rapport
+# Messagerie (mode O) : clients, commandes, rendez-vous, partenaires, relances, rapport
 
 Outil : `scripts/messagerie.py`. Données : `$ANALYSES_DONNEES/messagerie/<compte>/` (cadre, contacts, journal) — dans
 l'espace privé de l'utilisateur, jamais dans la boîte à outils. Les numéros et noms des clients ne sortent jamais de cet espace.
@@ -32,7 +32,32 @@ qui ont écrit les premières.
 Connexion : toujours par l'utilisateur lui-même (QR code, mot de passe, code) dans l'onglet ouvert ; Claude ne tape jamais
 d'identifiant ni de code. Mauvais compte connecté → ne rien lire ni envoyer.
 
-## 3. Rendez-vous
+## 3. Se connecter aux messageries de l'utilisateur
+
+C'est **l'utilisateur** qui connecte, une fois par appareil ; Claude ouvre la page et attend :
+- **WhatsApp** : ouvrir https://web.whatsapp.com dans son navigateur → il scanne le QR code avec son téléphone
+  (WhatsApp → Réglages → Appareils connectés → Connecter un appareil). Le téléphone doit rester connecté à Internet.
+  WhatsApp Business app : même chose. Plusieurs numéros : un profil de navigateur par numéro.
+- **Telegram** : https://web.telegram.org → QR code (Telegram → Réglages → Appareils → Connecter un appareil).
+- **Instagram, Messenger, TikTok, LinkedIn** : la messagerie du site, connexion par l'utilisateur.
+Noter chaque compte dans `profil.json > messagerie > comptes` (clé, plateforme, numéro ou pseudo, profil de navigateur,
+type entreprise|perso). Claude ne voit jamais le code, ne le tape jamais, et se déconnecte seulement si l'utilisateur le demande.
+Une tâche programmée qui lit ces messageries tourne sur l'ordinateur où la connexion est faite (navigateur ouvert).
+
+## 4. Prendre les commandes
+
+Cadre : `commandes.actif: true`, `catalogue` (nom, prix exact, unité, disponible, autres mots du client), `livraison`
+(zones, jours, frais exacts), `paiement` (comment le client paie ; jamais de numéro de carte demandé), `confirmation_auto`.
+1. `decider` renvoie `commande` avec les produits cités. Demander ce qui manque (quantités, nom, lieu et jour de livraison),
+   en messages courts, sans rien inventer.
+2. `commande nouvelle --articles "Panier x2; 3 Jus" --livraison "…"` : le total est calculé avec le catalogue ; un produit
+   absent ou indisponible est refusé (proposer le catalogue ou passer au propriétaire).
+3. Envoyer le récapitulatif exact au client. Quand il répond « je confirme » : `commande statut --n … confirmee`, prévenir
+   le propriétaire tout de suite (notification) ; sans `confirmation_auto`, montrer d'abord la commande au propriétaire.
+4. `preparee`, `livree`, `annulee` au fil de l'eau ; le rapport du soir liste les commandes du jour et les ouvertes.
+Jamais : changer un prix, accorder une remise, encaisser, demander des coordonnées bancaires, promettre un délai hors cadre.
+
+## 5. Rendez-vous
 
 1. `messagerie.py creneaux --compte … --occupe occupe.json` : `occupe.json` = les périodes prises de l'agenda (connecteur
    Google Calendar : événements des 7 prochains jours → `[{"debut": ISO, "fin": ISO}]`).
@@ -40,7 +65,7 @@ d'identifiant ni de code. Mauvais compte connecté → ne rien lire ni envoyer.
    lieu ou lien d'appel, rappel), puis `messagerie.py rdv --compte … --contact … --texte "<jour heure>" --lien <lien de l'événement>`.
 3. Sans `auto_confirmer` : montrer l'événement au propriétaire et attendre son « oui » avant de le créer.
 
-## 4. Partenaires et relances
+## 6. Partenaires et relances
 
 - `messagerie.py contact --compte … --nom … --canal linkedin --motif partenaire --source "<où on l'a trouvé>" --note "<pourquoi>"` :
   seulement des entreprises, créateurs ou personnalités **publics** ; jamais un particulier trouvé par son nom ou sa photo.
@@ -48,11 +73,11 @@ d'identifiant ni de code. Mauvais compte connecté → ne rien lire ni envoyer.
   un brouillon personnalisé (qui on est, pourquoi lui, une proposition claire, une question simple), montré au propriétaire.
 - Relance : 2 au plus, espacées de `relance.delai_j` jours ; sans réponse ensuite, on arrête.
 
-## 5. Boucle de travail (session ou tâche programmée)
+## 7. Boucle de travail (session ou tâche programmée)
 
 1. Ouvrir la messagerie du compte (vérifier le compte connecté).
 2. Pour chaque conversation non lue : `decider` → selon la décision, envoyer la réponse (auto), proposer des créneaux (rdv),
-   envoyer la réponse d'attente et ajouter à « à vous de répondre » (proprietaire_attente), ou ne rien envoyer (proprietaire).
+   envoyer la réponse d'attente et ajouter à « à vous de répondre » (proprietaire_attente), prendre la commande (commande, §4), ou ne rien envoyer (proprietaire).
    Après chaque envoi : `noter --sens envoye [--auto]`. Une action toutes les quelques secondes, jamais en rafale.
 3. `a-faire` → brouillons de relances et de premiers messages → liste numérotée au propriétaire.
 4. `rapport --out …` → envoyer au propriétaire (et l'ajouter au rapport PDF des réseaux sociaux si une analyse est en cours).

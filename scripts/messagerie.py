@@ -16,6 +16,10 @@ python scripts/messagerie.py contact --compte … --nom … [--canal …] [--mot
       [--consentement "<date, comment>"] [--relancer-dans-j 7] [--note …]
 python scripts/messagerie.py a-faire --compte …                -> relances dues et partenaires à contacter (brouillons à valider)
 python scripts/messagerie.py rapport --compte … [--date AAAA-MM-JJ] [--out rapport.md]
+python scripts/messagerie.py commande nouvelle --compte … --client "<nom>" --articles "Panier x2; Jus x1" [--livraison "<lieu, jour>"] [--contact "<numéro ou pseudo>"]
+      -> total calculé avec le catalogue du cadre, récapitulatif à envoyer au client ; statut a_confirmer_client
+python scripts/messagerie.py commande statut --compte … --n <numéro> confirmee|preparee|livree|annulee [--note …]
+python scripts/messagerie.py commande liste --compte … [--ouvertes]
 
 Règles (aussi dans reference/messagerie.md) :
 - Réponse automatique SEULEMENT sur un compte « entreprise », avec un cadre validé (empreinte inchangée depuis l'accord),
@@ -29,6 +33,8 @@ from common import DONNEES, load, save
 
 PERMIS_PREMIER_MESSAGE = {"linkedin", "instagram", "email", "x", "facebook", "messenger", "tiktok"}
 STOP = {"stop", "arret", "arrete", "desabonner", "desinscrire", "ne m ecrivez plus", "unsubscribe"}
+COMMANDE = {"commander", "commande", "acheter", "je veux", "je voudrais", "j aimerais", "je prends", "reserver", "livrer moi",
+            "envoyez moi"}
 RDV = {"rendez vous", "rdv", "rendez-vous", "disponible", "dispo", "creneau", "reserver", "rencontrer", "appel", "visio",
        "passer vous voir", "quand pouvez", "quand peut on"}
 ESCALADE_DEFAUT = ["plainte", "rembourse", "avocat", "arnaque", "escroc", "police", "menace", "urgent", "malade", "deces",
@@ -109,6 +115,11 @@ MODELE = {
                   "parler au nom du propriétaire de sa vie privée"],
     "limites": {"auto_par_jour": 50, "auto_par_contact_par_jour": 5, "premiers_messages_par_jour": 10},
     "relance": {"delai_j": 7, "max": 2},
+    "commandes": {"actif": False, "devise": "FCFA",
+                  "catalogue": [{"nom": "<à remplir : produit>", "prix": 0, "unite": "pièce", "disponible": True, "mots": []}],
+                  "livraison": "<à remplir : zones, jours, frais exacts, ou « retrait sur place »>",
+                  "paiement": "<à remplir : comment le client paie (à la livraison, Mobile Money au numéro officiel…)>",
+                  "confirmation_auto": True},
     "hors_cadre": "Merci, je transmets votre message à <nom>, qui vous répond au plus vite.",
 }
 
@@ -193,6 +204,9 @@ def cmd_decider(a):
         lim = c.get("limites", {})
         if auto_jour >= lim.get("auto_par_jour", 50) or auto_contact >= lim.get("auto_par_contact_par_jour", 5):
             out["raison"] = "plafond de réponses automatiques atteint : le propriétaire prend le relais"
+        elif (c.get("commandes") or {}).get("actif") and any(w in msg for w in COMMANDE) and articles_cites(c, msg):
+            out.update(decision="commande", articles=articles_cites(c, msg),
+                       raison="commande : vérifier quantités, nom et livraison, puis messagerie.py commande nouvelle et envoyer le récapitulatif")
         elif (c.get("rdv") or {}).get("actif") and any(norm(r) in msg for r in RDV):
             out.update(decision="rdv", raison="demande de rendez-vous : proposer les créneaux libres (messagerie.py creneaux)")
         else:
@@ -208,6 +222,92 @@ def cmd_decider(a):
                            raison="aucune réponse du cadre ne correspond : réponse d'attente, le propriétaire répond")
     journal(a.compte, type="decision", contact=a.de, sens="recu", texte=a.message, decision=out["decision"])
     print(json.dumps(out, ensure_ascii=False, indent=1))
+
+
+# ---------------------------------------------------------------- commandes
+def produit(c, nom):
+    n = norm(nom)
+    for p in (c.get("commandes") or {}).get("catalogue", []):
+        if norm(p["nom"]) == n or n in [norm(m) for m in p.get("mots", [])]:
+            return p
+    for p in (c.get("commandes") or {}).get("catalogue", []):
+        if n and (n in norm(p["nom"]) or norm(p["nom"]) in n):
+            return p
+    return None
+
+
+def articles_cites(c, msg):
+    res = []
+    for p in (c.get("commandes") or {}).get("catalogue", []):
+        if any(norm(x) and norm(x) in msg for x in [p["nom"]] + p.get("mots", [])):
+            res.append(p["nom"])
+    return res
+
+
+def commandes(compte):
+    return load(P(compte, "commandes.json"), []) or []
+
+
+def cmd_commande_nouvelle(a):
+    c = cadre_de(a.compte)
+    cm = c.get("commandes") or {}
+    if not cm.get("actif"):
+        sys.exit("Prise de commandes désactivée dans le cadre (commandes.actif)")
+    lignes, total, refus = [], 0, []
+    for morceau in [m.strip() for m in a.articles.split(";") if m.strip()]:
+        m1 = re.match(r"(.+?)\s*[x×*]\s*(\d+)$", morceau)
+        m2 = re.match(r"(\d+)\s+(.+)$", morceau)
+        if m1:
+            nom, q = m1.group(1), int(m1.group(2))
+        elif m2:
+            q, nom = int(m2.group(1)), m2.group(2)
+        else:
+            nom, q = morceau, 1
+        p = produit(c, nom)
+        if not p:
+            refus.append(f"« {nom} » absent du catalogue")
+            continue
+        if not p.get("disponible", True):
+            refus.append(f"« {p['nom']} » indisponible")
+            continue
+        st_ = p["prix"] * q
+        total += st_
+        lignes.append({"produit": p["nom"], "quantite": q, "prix": p["prix"], "unite": p.get("unite", ""), "sous_total": st_})
+    if refus:
+        sys.exit("Commande non créée : " + " ; ".join(refus) + ". Demander au client de choisir dans le catalogue, ou passer au propriétaire.")
+    L = commandes(a.compte)
+    n = (max([x["n"] for x in L]) + 1) if L else 1
+    dev = cm.get("devise", "")
+    fmt = lambda v: f"{v:,.0f}".replace(",", " ") + f" {dev}"
+    recap = "\n".join([f"Récapitulatif de votre commande n° {n} :"] +
+                      [f"- {l['produit']} × {l['quantite']} : {fmt(l['sous_total'])}" for l in lignes] +
+                      [f"Total : {fmt(total)}", f"Livraison : {a.livraison or cm.get('livraison', '')}",
+                       f"Paiement : {cm.get('paiement', '')}", "Répondez « je confirme » pour valider la commande."])
+    cde = {"n": n, "date": maintenant().isoformat(timespec="seconds"), "client": a.client, "contact": a.contact,
+           "articles": lignes, "total": total, "devise": dev, "livraison": a.livraison, "statut": "a_confirmer_client",
+           "historique": [{"date": maintenant().isoformat(timespec="seconds"), "statut": "a_confirmer_client"}]}
+    L.append(cde)
+    save(P(a.compte, "commandes.json"), L)
+    journal(a.compte, type="commande", contact=a.client, texte=f"commande n° {n} : {fmt(total)}", n=n)
+    print(json.dumps({"n": n, "total": total, "recapitulatif": recap}, ensure_ascii=False, indent=1))
+
+
+def cmd_commande_statut(a):
+    L = commandes(a.compte)
+    cde = next((x for x in L if x["n"] == a.n), None) or sys.exit(f"Commande {a.n} inconnue")
+    cde["statut"] = a.statut
+    cde["historique"].append({"date": maintenant().isoformat(timespec="seconds"), "statut": a.statut, "note": a.note})
+    save(P(a.compte, "commandes.json"), L)
+    journal(a.compte, type="commande_statut", contact=cde["client"], texte=f"commande n° {a.n} : {a.statut}", n=a.n)
+    print(f"Commande n° {a.n} : {a.statut}")
+
+
+def cmd_commande_liste(a):
+    for x in commandes(a.compte):
+        if a.ouvertes and x["statut"] in ("livree", "annulee"):
+            continue
+        print(f"n° {x['n']:<4} {x['date'][:16]}  {x['client'][:24]:<24} {x['total']:>10} {x['devise']}  {x['statut']}  "
+              + ", ".join(f"{l['produit']}×{l['quantite']}" for l in x["articles"]))
 
 
 # ---------------------------------------------------------------- créneaux
@@ -321,14 +421,20 @@ def cmd_rapport(a):
     attente = [e for e in attente if norm(e.get("contact")) not in repondus]
     rdv = [e for e in J if e.get("type") == "rdv"]
     stop = [f for f in C.values() if f.get("opposition") == jour]
+    cdes = [x for x in commandes(a.compte) if x["date"][:10] == jour]
+    ouvertes = [x for x in commandes(a.compte) if x["statut"] not in ("livree", "annulee")]
     dues = [f for f in C.values() if f.get("relancer_le") and f["relancer_le"] <= jour and not f.get("opposition")]
     L = [f"# Messagerie — {a.compte} — {jour}", "",
          f"- Personnes qui ont écrit : **{len({norm(e.get('contact')) for e in recus})}** ({len(recus)} messages)",
          f"- Réponses automatiques (dans le cadre) : **{len(auto)}** · réponses validées par vous : **{len(manu)}**",
          f"- Rendez-vous pris : **{len(rdv)}**", f"- En attente de votre réponse : **{len(attente)}**",
+         f"- Commandes du jour : **{len(cdes)}** ({sum(x['total'] for x in cdes):,.0f} {cdes[0]['devise'] if cdes else ''}) · commandes ouvertes : {len(ouvertes)}".replace(",", " "),
          f"- Relances dues : **{len(dues)}** · oppositions (STOP) : {len(stop)}", ""]
     if attente:
         L += ["## À vous de répondre", ""] + [f"- {e.get('contact')} : « {e.get('texte', '')[:140]} »" for e in attente] + [""]
+    if ouvertes:
+        L += ["## Commandes ouvertes", ""] + [f"- n° {x['n']} {x['client']} : {', '.join(l['produit'] + ' × ' + str(l['quantite']) for l in x['articles'])} "
+                                             f"— {x['total']:,.0f} {x['devise']} — {x['statut']}".replace(",", " ") for x in ouvertes] + [""]
     if rdv:
         L += ["## Rendez-vous", ""] + [f"- {e.get('contact')} : {e.get('texte')}" for e in rdv] + [""]
     if auto:
@@ -372,8 +478,16 @@ af = sp.add_parser("a-faire"); af.add_argument("--compte", required=True)
 rp = sp.add_parser("rapport"); rp.add_argument("--compte", required=True); rp.add_argument("--date"); rp.add_argument("--out")
 rv = sp.add_parser("rdv"); rv.add_argument("--compte", required=True); rv.add_argument("--contact", required=True)
 rv.add_argument("--texte", required=True); rv.add_argument("--lien")
+co = sp.add_parser("commande"); cos = co.add_subparsers(dest="sous", required=True)
+cn = cos.add_parser("nouvelle"); cn.add_argument("--compte", required=True); cn.add_argument("--client", required=True)
+cn.add_argument("--articles", required=True); cn.add_argument("--livraison"); cn.add_argument("--contact")
+cst = cos.add_parser("statut"); cst.add_argument("--compte", required=True); cst.add_argument("--n", type=int, required=True)
+cst.add_argument("statut", choices=["confirmee", "preparee", "livree", "annulee"]); cst.add_argument("--note")
+cl = cos.add_parser("liste"); cl.add_argument("--compte", required=True); cl.add_argument("--ouvertes", action="store_true")
 a = ap.parse_args()
-if a.cmd == "cadre":
+if a.cmd == "commande":
+    {"nouvelle": cmd_commande_nouvelle, "statut": cmd_commande_statut, "liste": cmd_commande_liste}[a.sous](a)
+elif a.cmd == "cadre":
     {"init": cmd_cadre_init, "montrer": cmd_cadre_montrer, "valider": cmd_cadre_valider}[a.sous](a)
 else:
     {"decider": cmd_decider, "creneaux": cmd_creneaux, "noter": cmd_noter, "contact": cmd_contact, "a-faire": cmd_a_faire,
