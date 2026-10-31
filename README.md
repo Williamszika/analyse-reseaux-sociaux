@@ -39,10 +39,10 @@ Le skill télécharge lui-même cette boîte à outils à chaque utilisation : v
 | Dossier | Contenu |
 |---|---|
 | `skill/SKILL.md` | Le skill à installer dans Claude |
-| `scripts/` | `donnees` (espace de données), `historique` (index, évolution, recherche), `usage` (journal privé, rapport anonyme, tableau de bord), `actions` (publications et publicités validées), `brief` (retour d'analyse pour les dépôts qui fabriquent les vidéos et les scripts), `controle_video` (contrôle d'une vidéo livrée contre le cahier des charges), `performance` (rétention, étiquettes, tests A/B, suivi des vidéos livrées, export pour tableau de bord), `collect`, `fetch`, `transcribe`, `measure`, `timing`, `report`, `archiver`, `calendrier`, `coherence`, `verifier_pdf`, `yt_search`, `install.sh` |
+| `scripts/` | `donnees` (espace de données), `historique` (index, évolution, recherche), `usage` (journal privé, rapport anonyme, tableau de bord), `actions` (publications et publicités validées), `brief` (retour d'analyse pour les dépôts qui fabriquent les vidéos et les scripts), `controle_video` (contrôle d'une vidéo livrée contre le cahier des charges), `performance` (rétention, étiquettes, tests A/B, suivi des vidéos livrées, export pour tableau de bord), `chaine` (fiches de suivi script → vidéo → publication, avec accords obligatoires), `collect`, `fetch`, `transcribe`, `measure`, `timing`, `report`, `archiver`, `calendrier`, `coherence`, `verifier_pdf`, `yt_search`, `install.sh` |
 | `reference/` | `reseaux.md` / `reseaux.json` (fiches et limites par réseau), `connecteurs.md` (Metricool, Supermetrics, vidIQ), `actions.md` (connexion, publication, publicités), `formats.md`, `projet.json` |
 | `modeles/` | `profil.exemple.json`, `comptes.exemple.json` |
-| `tests/selftest.py` | 149 vérifications sur un utilisateur fictif, sans Internet |
+| `tests/selftest.py` | 176 vérifications sur un utilisateur fictif, sans Internet |
 
 ## En ligne de commande
 ```bash
@@ -87,4 +87,4 @@ own (ideally private) data space.
 - Usage reports to the author are anonymous, opt-in and shown before sending.
 - The skill does not search for private individuals.
 
-**Tests:** `python3 tests/selftest.py` (149 checks, offline). MIT licence.
+**Tests:** `python3 tests/selftest.py` (176 checks, offline). MIT licence.

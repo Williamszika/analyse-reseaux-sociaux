@@ -366,6 +366,37 @@ check("tableau : historique du compte", len(json.load(open(os.path.join(tbd, "hi
 r = run("données trouver", ["donnees.py", "trouver", "--racine", TMP])
 check("données : espace existant retrouvé", DON in r.stdout, r.stdout[-300:])
 
+# 9i. Chaîne à trois (chaine.py) : passages autorisés, accords obligatoires, limites de reprises
+CH = os.path.join(TMP, "chaine")
+def ch(nom, args, attendu=0):
+    return run(nom, ["chaine.py", "--dir", CH] + args, attendu=attendu)
+ch("chaîne nouvelle", ["nouvelle", "--id", "v1", "--titre", "T", "--script", "s.md"])
+ch("chaîne : vidéo sans script validé refusée", ["statut", "v1", "video_autorisee"], attendu=1)
+ch("chaîne reprise 1", ["statut", "v1", "script_a_reprendre", "--champ", "revues=accroche trop lente"])
+ch("chaîne réécrit 1", ["statut", "v1", "script_a_revoir"])
+ch("chaîne reprise 2", ["statut", "v1", "script_a_reprendre"])
+ch("chaîne réécrit 2", ["statut", "v1", "script_a_revoir"])
+ch("chaîne valide", ["statut", "v1", "script_valide"])
+ch("chaîne : vidéo sans accord refusée", ["statut", "v1", "video_autorisee"], attendu=1)
+ch("chaîne : accord vide refusé", ["accord", "v1", "video", "--texte", " "], attendu=1)
+ch("chaîne accord vidéo", ["accord", "v1", "video", "--texte", "oui lance"])
+ch("chaîne livrée", ["statut", "v1", "video_livree"])
+ch("chaîne : publication avant contrôle refusée", ["accord", "v1", "publication", "--texte", "oui"], attendu=1)
+ch("chaîne conforme", ["statut", "v1", "video_conforme"])
+ch("chaîne accord publication", ["accord", "v1", "publication", "--texte", "oui publie"])
+ch("chaîne publiée", ["statut", "v1", "publiee", "--champ", "lien=https://exemple.test/v"])
+fv = json.load(open(os.path.join(CH, "v1.json")))
+check("chaîne : accords gardés mot pour mot", fv["accords"]["publication"]["texte"] == "oui publie" and fv["lien"].startswith("https"))
+check("chaîne : revue gardée", fv["revues"] and "accroche" in fv["revues"][0]["texte"])
+ch("chaîne nouvelle 2", ["nouvelle", "--id", "v2", "--titre", "T2", "--script", "s2.md"])
+for k in range(3):
+    ch(f"chaîne v2 reprise {k}", ["statut", "v2", "script_a_reprendre"])
+    if k < 2:
+        ch(f"chaîne v2 réécrit {k}", ["statut", "v2", "script_a_revoir"])
+check("chaîne : 3e reprise -> bloquée", json.load(open(os.path.join(CH, "v2.json")))["statut"] == "bloquee")
+r = ch("chaîne liste", ["liste", "--a-traiter"])
+check("chaîne : liste à traiter", "v2" in r.stdout and "v1" not in r.stdout, r.stdout)
+
 # 10. PDF sans page vide
 for nom, pdf in [("pdf rapport 2", os.path.join(dos2, "rapport.pdf")), ("pdf instagram", os.path.join(dos3, "rapport.pdf")),
                  ("pdf calendrier", os.path.join(cal, "calendrier.pdf")),

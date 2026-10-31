@@ -142,3 +142,6 @@ Code de sortie 3 s'il reste un point non respecté.
 - `tests.json` : `{ "<nom>": {hypothese, variantes: {A, B}, critere, min, videos: {A: [ids], B: [ids]}, cree, statut, dernier_verdict} }`.
 - `performance.py tableau` écrit `videos.json`, `historique.json`, `livrables.json`, `tests.json` (listes de lignes) pour un tableau de bord.
 - `profil.json > tableau_de_bord` : adresse de l'artefact ; `profil.json > releve_soir` : identifiant et heure de la tâche du soir.
+
+## Chaîne (chaine.py)
+`chaine/<id>.json` : `id`, `titre`, `script`, `plan`, `statut`, `historique` [{date, statut, note}], `accords` {video, publication : {date, texte mot pour mot}}, `revues` [{date, texte}], `controles` [{date, texte}], champs libres (`livrable`, `lien`, `demande_video`, `demande_publication`), `cree`, `maj`.
