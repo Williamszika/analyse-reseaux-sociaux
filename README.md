@@ -45,7 +45,7 @@ Le skill télécharge lui-même cette boîte à outils à chaque utilisation : v
 | `reference/` | `reseaux.md` / `reseaux.json` (fiches et limites par réseau), `connecteurs.md` (Metricool, Supermetrics, vidIQ), `actions.md` (connexion, publication, publicités), `messagerie.md` (règles par plateforme, rendez-vous, partenaires), `plateformes.json` (règles et seuils datés et sourcés), `formats.md`, `projet.json` |
 | `modeles/` | `profil.exemple.json`, `comptes.exemple.json` |
 | `tests/evals/cas.json` | 20 cas d'examen du skill (`scripts/evaluer.py`) |
-| `tests/selftest.py` | 267 vérifications sur un utilisateur fictif, sans Internet |
+| `tests/selftest.py` | 286 vérifications sur un utilisateur fictif, sans Internet |
 
 ## En ligne de commande
 ```bash

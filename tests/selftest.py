@@ -381,7 +381,6 @@ ch("chaîne : vidéo sans accord refusée", ["statut", "v1", "video_autorisee"],
 ch("chaîne : accord vide refusé", ["accord", "v1", "video", "--texte", " "], attendu=1)
 ch("chaîne accord vidéo", ["accord", "v1", "video", "--texte", "oui lance"])
 ch("chaîne livrée", ["statut", "v1", "video_livree"])
-ch("chaîne : publication avant contrôle refusée", ["accord", "v1", "publication", "--texte", "oui"], attendu=1)
 ch("chaîne conforme", ["statut", "v1", "video_conforme"])
 ch("chaîne accord publication", ["accord", "v1", "publication", "--texte", "oui publie"])
 ch("chaîne publiée", ["statut", "v1", "publiee", "--champ", "lien=https://exemple.test/v"])
@@ -396,6 +395,30 @@ for k in range(3):
 check("chaîne : 3e reprise -> bloquée", json.load(open(os.path.join(CH, "v2.json")))["statut"] == "bloquee")
 r = ch("chaîne liste", ["liste", "--a-traiter"])
 check("chaîne : liste à traiter", "v2" in r.stdout and "v1" not in r.stdout, r.stdout)
+# accord de publication donné en voyant la vidéo (avant le contrôle)
+def jusqu_a_livree(i):
+    ch(f"chaîne {i} nouvelle", ["nouvelle", "--id", i, "--titre", i, "--script", "s.md"])
+    ch(f"chaîne {i} valide", ["statut", i, "script_valide"])
+    ch(f"chaîne {i} accord vidéo", ["accord", i, "video", "--texte", "oui"])
+    ch(f"chaîne {i} livrée", ["statut", i, "video_livree"])
+ch("chaîne nouvelle 3", ["nouvelle", "--id", "v3", "--titre", "T3", "--script", "s3.md"])
+ch("chaîne : publication avant la vidéo refusée", ["accord", "v3", "publication", "--texte", "oui"], attendu=1)
+jusqu_a_livree("v4")
+ch("chaîne v4 accord en voyant la vidéo", ["accord", "v4", "publication", "--texte", "pousse", "--ou", "fabrication"])
+f4 = json.load(open(os.path.join(CH, "v4.json")))
+check("chaîne : accord anticipé gardé, statut inchangé", f4["statut"] == "video_livree"
+      and f4["accords"]["publication"]["avant_controle"] and f4["accords"]["publication"]["ou"] == "fabrication")
+ch("chaîne v4 conforme", ["statut", "v4", "video_conforme"])
+check("chaîne : conforme + accord anticipé -> publication_autorisee",
+      json.load(open(os.path.join(CH, "v4.json")))["statut"] == "publication_autorisee")
+jusqu_a_livree("v5")
+ch("chaîne v5 accord en voyant la vidéo", ["accord", "v5", "publication", "--texte", "publie"])
+ch("chaîne v5 à corriger", ["statut", "v5", "video_a_corriger"])
+f5 = json.load(open(os.path.join(CH, "v5.json")))
+check("chaîne : vidéo à corriger -> accord anticipé annulé", "publication" not in f5["accords"] and f5["accords_annules"])
+ch("chaîne v5 relivrée", ["statut", "v5", "video_livree"])
+ch("chaîne v5 conforme", ["statut", "v5", "video_conforme"])
+check("chaîne : sans nouvel accord, reste conforme", json.load(open(os.path.join(CH, "v5.json")))["statut"] == "video_conforme")
 
 # 9j. Messagerie (messagerie.py) : cadre validé, réponses automatiques bornées, STOP, rendez-vous, partenaires, rapport
 def ms(nom, args, attendu=0):
