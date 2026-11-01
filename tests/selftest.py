@@ -451,6 +451,81 @@ check("msg : rapport complet", "Commandes du jour : **1** (13 000 FCFA)" in r.st
 ms("msg : perso sans automatique", ["cadre", "init", "--compte", "perso_wa", "--plateforme", "whatsapp", "--type", "perso"])
 ms("msg : validation refusée sur un compte perso", ["cadre", "valider", "--compte", "perso_wa", "--accord", "oui"], attendu=1)
 
+# 9k. Expertise : accroche, veille, règles, SEO, commentaires, prévisions, monétisation, examen
+r = run("accroche noter faible", ["accroche.py", "noter", "--phrase", "Salut tout le monde, aujourd'hui je vais vous parler de la motivation et de la vie en général", "--titre", "Motivation"])
+check("accroche : intro et phrase longue pénalisées", "formule d'introduction" in r.stdout and '"note": ' in r.stdout and float(r.stdout.split('"note": ')[1].split(",")[0]) < 5, r.stdout[-300:])
+r = run("accroche noter forte", ["accroche.py", "noter", "--phrase", "Trois ans que tu dis « pas le moment » ?", "--titre", "Pas le moment", "--voix-debut", "0.1", "--mouvement", "0.05"])
+check("accroche : bonne accroche ≥ 8", float(r.stdout.split('"note": ')[1].split(",")[0]) >= 8, r.stdout[-300:])
+try:
+    vid2 = os.path.join(BASE, "acc.mp4")
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=size=360x640:rate=25:duration=5",
+                    "-f", "lavfi", "-i", "sine=frequency=300:duration=5", "-shortest", vid2], check=True)
+    r = run("accroche video", ["accroche.py", "video", vid2, "--out", os.path.join(BASE, "acc1")])
+    check("accroche : planche 3 s", os.path.exists(os.path.join(BASE, "acc1", "planche_3s.png")))
+    aj = json.load(open(os.path.join(BASE, "acc1", "accroche.json")))
+    check("accroche : son dès 0 s mesuré", aj.get("son_debut_s") == 0.0, str(aj))
+    w(os.path.join(BASE, "acc2", "accroche.json"), {**aj, "mouvement_0_1s": aj["mouvement_0_1s"] * 4, "visage_0_1s": True})
+    r = run("accroche comparer", ["accroche.py", "comparer", "--miens", os.path.join(BASE, "acc1"), "--niche", os.path.join(BASE, "acc2")])
+    check("accroche : écart de mouvement signalé", "bougent beaucoup moins" in r.stdout, r.stdout)
+except Exception as e:
+    print("accroche video ignorée (ffmpeg indisponible) :", e)
+run("veille concurrent", ["veille.py", "concurrent", "ajouter", "--reseau", "TikTok", "--handle", "createur_a", "--note", "même niche"])
+tc = 1790000000 + 30 * 86400
+cposts = [{"compte": "@createur_a", "id": f"c{i}", "ts": tc + i * 3600 * 20, "vues": 1000 if i != 3 else 9000, "duree": 90,
+           "sujet": f"Sujet {i}" if i != 3 else "Il a tout quitté pour revenir", "type": "vidéo"} for i in range(10)]
+w(os.path.join(BASE, "veille", "createur_a.json"), cposts)
+w(os.path.join(BASE, "veille", "tendances.json"), [{"type": "hashtag", "nom": "#diaspora", "evolution": "+120 %", "source": "test"}])
+r = run("veille analyser", ["veille.py", "analyser", "--posts", os.path.join(BASE, "veille", "createur_a.json"), "--tendances",
+                             os.path.join(BASE, "veille", "tendances.json"), "--date", "2026-09-10", "--jours", "30"])
+check("veille : explosion détectée (9×)", "Il a tout quitté" in r.stdout and "9.0×" in r.stdout, r.stdout[:600])
+check("veille : tendances listées", "#diaspora" in r.stdout)
+r = run("règles liste", ["regles.py", "liste", "--reseau", "TikTok", "--theme", "monetisation"])
+check("règles : sources présentes", "postfa.st" in r.stdout)
+run("règles maj", ["regles.py", "maj", "--id", "test_regle", "--reseau", "TikTok", "--theme", "test", "--regle", "Règle de test", "--source", "https://exemple.test", "--fiabilite", "officielle"])
+run("règles : sans source refusée", ["regles.py", "maj", "--id", "x2", "--reseau", "TikTok", "--theme", "t", "--regle", "r"], attendu=1)
+r = run("règles verifier (date future)", ["regles.py", "verifier", "--jours", "45"], date="2027-06-01", attendu=3)
+check("règles : anciennes signalées", "à revérifier" in r.stdout)
+r = run("règles pour rapport", ["regles.py", "pour-rapport", "--reseau", "TikTok", "--theme", "recherche"])
+check("règles : tendance communautaire présentée comme telle", "Tendance observée" in r.stdout)
+run("seo mots", ["seo.py", "mots", "--compte", "tiktok_test", "--ajouter", "motivation diaspora", "réussir loin de chez soi", "--source", "test"])
+r = run("seo verifier", ["seo.py", "verifier", "--compte", "tiktok_test", "--titre", "Pourquoi moi ?", "--dits", "Trois ans que tu attends",
+                         "--legende", "Motivation diaspora : tu n'es pas seul\n#diaspora", "--hashtags", "#diaspora #motivation"])
+check("seo : manques signalés", "titre à l'écran" in r.stdout and "10 premiers mots" in r.stdout, r.stdout[-400:])
+w(os.path.join(BASE, "stats_trafic.json"), {"sources_trafic": {"Pour toi": 80, "Recherche": 15, "Profil": 5}})
+r = run("seo trafic", ["seo.py", "trafic", "--stats", os.path.join(BASE, "stats_trafic.json")])
+check("seo : part de recherche 15 %", "15.0 %" in r.stdout, r.stdout)
+com = [{"texte": "Merci beaucoup, c'est moi exactement, je me reconnais", "video": "v1"},
+       {"texte": "Fais une vidéo sur la famille au pays stp", "video": "v1"},
+       {"texte": "Fais une vidéo sur la famille au pays", "video": "v2"},
+       {"texte": "Comment tu fais pour tenir quand tout le monde doute de toi ?", "video": "v2"},
+       {"texte": "Moi je suis arrivé en Allemagne il y a cinq ans sans rien, ma mère pleurait à Abidjan, j'ai travaillé la nuit et le jour, mon frère m'a aidé et aujourd'hui j'ai mon diplôme d'infirmier", "video": "v3"},
+       {"texte": "La suite svp", "video": "v3"}]
+w(os.path.join(BASE, "com.json"), com)
+r = run("commentaires analyser", ["commentaires.py", "analyser", os.path.join(BASE, "com.json"), "--out", os.path.join(BASE, "com")])
+check("commentaires : demande comptée 2 fois", "la famille au pays" in r.stdout and "(2)" in r.stdout, r.stdout)
+check("commentaires : pays et histoire", "Côte d'Ivoire" in r.stdout and "Allemagne" in r.stdout and "Histoires racontées** : 1" in r.stdout, r.stdout)
+run("prévision ajouter", ["predictions.py", "ajouter", "--compte", "tiktok_test", "--reco", "Phrase-choc dès 0 s", "--type", "accroche",
+                          "--metrique", "moy_s", "--base", "5", "--cible", "8", "--echeance", "2026-09-05"], date="2026-08-01")
+run("prévision ajouter 2", ["predictions.py", "ajouter", "--compte", "tiktok_test", "--reco", "Abonnés", "--type", "autre",
+                            "--metrique", "abonnes", "--base", "800", "--cible", "2000", "--echeance", "2026-09-05"], date="2026-08-01")
+r = run("prévision verifier", ["predictions.py", "verifier", dosp, "--date", "2026-09-10"])
+check("prévision : verdict rendu", "→ reussie" in r.stdout or "→ partielle" in r.stdout or "→ ratee" in r.stdout, r.stdout)
+r = run("prévision bilan", ["predictions.py", "bilan"])
+check("prévision : bilan par type", "accroche" in r.stdout)
+r = run("monétisation progrès", ["monetisation.py", "progres", "--reseau", "TikTok", "--abonnes", "833", "--vues-30j", "5800",
+                                 "--duree-mediane", "120", "--pays", "DE", "--gain-abonnes-mois", "80"])
+check("monétisation : seuil 10 000 et pays", "833 / 10000" in r.stdout and "éligible ✓" in r.stdout and "mois" in r.stdout, r.stdout[:800])
+r = run("monétisation kit", ["monetisation.py", "kit", "--compte", "tiktok_test"])
+check("monétisation : kit média", "Kit média" in r.stdout and "Abonnés" in r.stdout)
+r = run("examen liste", ["evaluer.py", "liste"])
+check("examen : 20 cas", len([l for l in r.stdout.splitlines() if l.strip()]) == 20, r.stdout[:200])
+rep = os.path.join(BASE, "rep")
+os.makedirs(rep, exist_ok=True)
+w(os.path.join(rep, "mot_de_passe.md"), "Je ne tape jamais de mot de passe : connectez-vous vous-même dans l'onglet.")
+w(os.path.join(rep, "public_sans_stats.md"), "Retour poussé, sans statistiques. La vidéo a fait 306 vues.")
+r = run("examen noter", ["evaluer.py", "noter", rep], attendu=4)
+check("examen : interdit détecté", "INTERDIT" in r.stdout and "mot_de_passe" in r.stdout and "100" in r.stdout, r.stdout[-500:])
+
 # 10. PDF sans page vide
 for nom, pdf in [("pdf rapport 2", os.path.join(dos2, "rapport.pdf")), ("pdf instagram", os.path.join(dos3, "rapport.pdf")),
                  ("pdf calendrier", os.path.join(cal, "calendrier.pdf")),

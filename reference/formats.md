@@ -149,3 +149,11 @@ Code de sortie 3 s'il reste un point non respecté.
 ## Messagerie (messagerie.py)
 `messagerie/<compte>/cadre.json` : nom_affiche, plateforme, type (entreprise|perso), langue, tutoiement, ton, presentation, signature, faq [{mots, reponse}], rdv {actif, objet, duree_min, jours, plages, delai_min_h, horizon_j, lieu, fuseau, auto_confirmer}, escalade, interdits, limites {auto_par_jour, auto_par_contact_par_jour, premiers_messages_par_jour}, relance {delai_j, max}, hors_cadre, validation {date, accord, empreinte}.
 `contacts.json` : {clé normalisée : {nom, canal, motif, source, consentement, note, relancer_le, relances, dernier_envoi, opposition, rdv}}. `journal.jsonl` : une ligne par message ou décision.
+
+## Expertise
+- `accroche.json` (accroche.py video) : mouvement_0_1s, mouvement_0_3s, visage_0_1s (null si non mesurable), details_ecran_0s, son_debut_s, volume_1re_seconde_db, volume_moyen_db, alertes ; `planche_3s.png`.
+- `concurrents.json` : [{reseau, handle, note, ajoute}] ; `veille/<date>.json|md` : comptes, explosions, durées, jours, tendances, idees_a_adapter.
+- `plateformes.json` (espace de données, prioritaire sur reference/plateformes.json) : {regles: [{id, reseau, theme, regle, consequence, seuils?, depuis, verifie, fiabilite, source}]}.
+- `seo.json` : {compte: [{mot, source, ajoute}]} ; `stats_internes.json > sources_trafic` : {« Pour toi »: %, « Recherche »: %, …}.
+- `commentaires_analyse.json` : n, emotions, pays, questions, histoires (extraits anonymes), demandes, mots, idees.
+- `predictions.json` : [{n, compte, reco, type, metrique, base, cible, cree, echeance, statut, resultat?, n_videos?}].

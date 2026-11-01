@@ -12,6 +12,7 @@ Instagram, YouTube, Facebook, LinkedIn, X, Threads, Pinterest, Twitch, Reddit, T
 - **garder l'historique** de chaque analyse et suivre votre évolution ;
 - mesurer la **rétention** de chaque vidéo, trouver par **étiquettes** ce qui fait monter les vues, mener des **tests A/B** et suivre les vidéos livrées à J+1 / J+7 ;
 - alimenter un **tableau de bord** ;
+- analyser les **3 premières secondes** de vos vidéos et de celles qui marchent, suivre **concurrents et tendances**, travailler le **référencement**, comprendre vos **commentaires**, vérifier que ses **conseils marchent vraiment**, suivre votre chemin vers la **monétisation** ;
 - livrer un **PDF**.
 
 Ce dépôt est public et ne contient **que des outils** : aucun compte, aucune statistique, aucun rapport, aucun secret.
@@ -40,10 +41,11 @@ Le skill télécharge lui-même cette boîte à outils à chaque utilisation : v
 | Dossier | Contenu |
 |---|---|
 | `skill/SKILL.md` | Le skill à installer dans Claude |
-| `scripts/` | `donnees` (espace de données), `historique` (index, évolution, recherche), `usage` (journal privé, rapport anonyme, tableau de bord), `actions` (publications et publicités validées), `brief` (retour d'analyse pour les dépôts qui fabriquent les vidéos et les scripts), `controle_video` (contrôle d'une vidéo livrée contre le cahier des charges), `performance` (rétention, étiquettes, tests A/B, suivi des vidéos livrées, export pour tableau de bord), `chaine` (fiches de suivi script → vidéo → publication, avec accords obligatoires), `messagerie` (cadre de réponses validé, rendez-vous, partenaires, relances, rapport), `collect`, `fetch`, `transcribe`, `measure`, `timing`, `report`, `archiver`, `calendrier`, `coherence`, `verifier_pdf`, `yt_search`, `install.sh` |
-| `reference/` | `reseaux.md` / `reseaux.json` (fiches et limites par réseau), `connecteurs.md` (Metricool, Supermetrics, vidIQ), `actions.md` (connexion, publication, publicités), `messagerie.md` (règles par plateforme, rendez-vous, partenaires), `formats.md`, `projet.json` |
+| `scripts/` | `donnees` (espace de données), `historique` (index, évolution, recherche), `usage` (journal privé, rapport anonyme, tableau de bord), `actions` (publications et publicités validées), `brief` (retour d'analyse pour les dépôts qui fabriquent les vidéos et les scripts), `controle_video` (contrôle d'une vidéo livrée contre le cahier des charges), `performance` (rétention, étiquettes, tests A/B, suivi des vidéos livrées, export pour tableau de bord), `chaine` (fiches de suivi script → vidéo → publication, avec accords obligatoires), `messagerie` (cadre de réponses validé, rendez-vous, partenaires, relances, rapport), `accroche` (3 premières secondes), `veille` (concurrents, tendances), `regles` (règles des plateformes sourcées), `seo`, `commentaires`, `predictions` (conseils vérifiés), `monetisation`, `evaluer` (examen du skill), `collect`, `fetch`, `transcribe`, `measure`, `timing`, `report`, `archiver`, `calendrier`, `coherence`, `verifier_pdf`, `yt_search`, `install.sh` |
+| `reference/` | `reseaux.md` / `reseaux.json` (fiches et limites par réseau), `connecteurs.md` (Metricool, Supermetrics, vidIQ), `actions.md` (connexion, publication, publicités), `messagerie.md` (règles par plateforme, rendez-vous, partenaires), `plateformes.json` (règles et seuils datés et sourcés), `formats.md`, `projet.json` |
 | `modeles/` | `profil.exemple.json`, `comptes.exemple.json` |
-| `tests/selftest.py` | 216 vérifications sur un utilisateur fictif, sans Internet |
+| `tests/evals/cas.json` | 20 cas d'examen du skill (`scripts/evaluer.py`) |
+| `tests/selftest.py` | 267 vérifications sur un utilisateur fictif, sans Internet |
 
 ## En ligne de commande
 ```bash
@@ -88,4 +90,4 @@ own (ideally private) data space.
 - Usage reports to the author are anonymous, opt-in and shown before sending.
 - The skill does not search for private individuals.
 
-**Tests:** `python3 tests/selftest.py` (216 checks, offline). MIT licence.
+**Tests:** `python3 tests/selftest.py` (267 checks, offline). MIT licence.
