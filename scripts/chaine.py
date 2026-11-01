@@ -5,7 +5,7 @@ Chaque étape change le statut et garde une trace datée. Les accords de l'utili
 
 python scripts/chaine.py nouvelle --id 2026-11-01_<slug> --titre "..." --script <chemin du script> [--plan <chemin plan.json>]
 python scripts/chaine.py statut <id> <nouveau statut> [--note "..."] [--champ cle=valeur ...]
-python scripts/chaine.py accord <id> video|publication --texte "<les mots exacts de l'utilisateur>"
+python scripts/chaine.py accord <id> video|publication --texte "<les mots exacts de l'utilisateur>" [--ou veille|fabrication]
 python scripts/chaine.py voir <id>
 python scripts/chaine.py liste [--a-traiter]          -> fiches et l'étape suivante de chacune
 
@@ -14,6 +14,9 @@ Statuts, dans l'ordre :
   → [accord vidéo] video_autorisee → video_livree → (video_a_corriger → video_livree, 1 fois au plus) → video_conforme
   → [accord publication] publication_autorisee → publiee
   bloquee (avec une raison) à tout moment.
+L'accord de publication peut aussi être donné dès video_livree, quand l'utilisateur vient de VOIR la vidéo et la légende
+exacte (dans la conversation de la fabrication ou de la veille) : il attend le contrôle. Contrôle conforme → la fiche passe
+seule à publication_autorisee ; contrôle à corriger → l'accord est annulé (la vidéo va changer) et il faudra le redemander.
 """
 import argparse, datetime as dt, json, os, sys
 
@@ -113,18 +116,37 @@ def cmd_statut(a):
         elif k:
             f[k] = v
     changer(f, a.statut, a.note)
+    pub = (f.get("accords") or {}).get("publication") or {}
+    if pub.get("avant_controle"):
+        if a.statut == "video_conforme":  # accord donné en voyant la vidéo + contrôle conforme : on peut publier
+            pub["avant_controle"] = False
+            changer(f, "publication_autorisee", f"accord donné avant le contrôle (« {pub['texte']} »), contrôle conforme")
+            print("Accord de publication déjà donné : la fiche passe à publication_autorisee.")
+        elif a.statut in ("video_a_corriger", "bloquee"):
+            f.setdefault("accords_annules", []).append({**pub, "annule": maintenant(), "raison": a.statut})
+            del f["accords"]["publication"]
+            f["historique"].append({"date": maintenant(), "statut": f["statut"],
+                                    "note": "accord de publication annulé : la vidéo doit être corrigée, le redemander"})
+            print("Accord de publication annulé (vidéo à corriger) : il faudra le redemander.")
     ecrire(a, f)
 
 
 def cmd_accord(a):
     f = lire(a, a.id)
     attendu = {"video": "script_valide", "publication": "video_conforme"}[a.quoi]
-    if f["statut"] != attendu and not (a.quoi == "video" and f["statut"] == "bloquee"):
-        sys.exit(f"Accord {a.quoi} impossible : la fiche est au statut {f['statut']} (attendu {attendu})")
+    avant = a.quoi == "publication" and f["statut"] == "video_livree"  # vu la vidéo, contrôle en cours
+    if f["statut"] != attendu and not avant and not (a.quoi == "video" and f["statut"] == "bloquee"):
+        sys.exit(f"Accord {a.quoi} impossible : la fiche est au statut {f['statut']} (attendu {attendu}"
+                 + (" ou video_livree" if a.quoi == "publication" else "") + ")")
     if not a.texte.strip():
         sys.exit("Les mots exacts de l'utilisateur sont obligatoires")
-    f.setdefault("accords", {})[a.quoi] = {"date": maintenant(), "texte": a.texte}
-    changer(f, "video_autorisee" if a.quoi == "video" else "publication_autorisee", f"accord : « {a.texte} »")
+    f.setdefault("accords", {})[a.quoi] = {"date": maintenant(), "texte": a.texte, "ou": a.ou, "avant_controle": avant}
+    if avant:
+        f["historique"].append({"date": maintenant(), "statut": f["statut"],
+                                "note": f"accord de publication donné en voyant la vidéo : « {a.texte} » (attend le contrôle)"})
+        print("Accord de publication enregistré : il servira dès que le contrôle sera conforme.")
+    else:
+        changer(f, "video_autorisee" if a.quoi == "video" else "publication_autorisee", f"accord : « {a.texte} »")
     ecrire(a, f)
 
 
@@ -143,7 +165,9 @@ def cmd_liste(a):
         if a.a_traiter and f["statut"] in ("publiee",):
             continue
         n += 1
-        print(f"{f['id']:<45} {f['statut']:<22} → {SUIVANT.get(f['statut'], '?')}  (maj {f.get('maj', '')[:16]})")
+        pre = " [accord de publication déjà donné, attend le contrôle]" if \
+            ((f.get("accords") or {}).get("publication") or {}).get("avant_controle") else ""
+        print(f"{f['id']:<45} {f['statut']:<22} → {SUIVANT.get(f['statut'], '?')}{pre}  (maj {f.get('maj', '')[:16]})")
     if not n:
         print("Aucune fiche" + (" à traiter" if a.a_traiter else ""))
 
@@ -156,7 +180,7 @@ n.add_argument("--script", required=True); n.add_argument("--plan")
 s = sp.add_parser("statut"); s.add_argument("id"); s.add_argument("statut"); s.add_argument("--note")
 s.add_argument("--champ", action="append")
 c = sp.add_parser("accord"); c.add_argument("id"); c.add_argument("quoi", choices=["video", "publication"])
-c.add_argument("--texte", required=True)
+c.add_argument("--texte", required=True); c.add_argument("--ou", default="veille")
 v = sp.add_parser("voir"); v.add_argument("id")
 l = sp.add_parser("liste"); l.add_argument("--a-traiter", action="store_true")
 a = ap.parse_args()
