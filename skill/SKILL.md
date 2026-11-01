@@ -1,6 +1,6 @@
 ---
 name: "analyse-reseaux-sociaux"
-description: "Analyse complète d'UN réseau social par demande, pour n'importe qui et n'importe quel réseau : contenus, stats, rétention, horaires, profil, publicités, tests A/B, messagerie (clients, commandes, rendez-vous, partenaires), chaîne vidéo, PDF."
+description: "Analyse complète d'UN réseau social par demande, pour n'importe qui et n'importe quel réseau : contenus, 3 premières secondes, rétention, horaires, profil, veille, SEO, publicités, tests A/B, messagerie, chaîne vidéo, PDF."
 ---
 
 # Analyse réseaux sociaux — v4.3
